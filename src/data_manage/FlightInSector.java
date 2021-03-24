@@ -1,6 +1,11 @@
+package data_manage;
+
 import java.time.LocalTime;
 
-public class FlightInSector {
+/**
+ * Contains information about a single visit of a sector by a flight.
+ */
+public class FlightInSector implements Comparable<FlightInSector>{
   /**
    * Sector identifier
    */
@@ -27,7 +32,7 @@ public class FlightInSector {
    * If successful, constructs and returns an instance of the class.
    * @param data - data record, an array of attribute values
    * @param attrNames - an array of attribute names
-   * @return an instance of FlightInSector if successfully got values
+   * @return an instance of data_manage.FlightInSector if successfully got values
    *         for mandatory variables: sectorId, flightId, entryTime, exitTime
    */
   public static FlightInSector getFlightData(Object data[], String attrNames[]) {
@@ -75,5 +80,20 @@ public class FlightInSector {
     if (fis.sectorId!=null && fis.flightId!=null && fis.entryTime !=null && fis.exitTime!=null)
       return fis;
     return null;
+  }
+  
+  @Override
+  public int compareTo(FlightInSector f2) {
+    if (this==null || this.entryTime==null)
+      return (f2==null || f2.entryTime==null)?0:1;
+    if (f2==null || f2.entryTime==null)
+      return -1;
+    int c=this.entryTime.compareTo(f2.entryTime);
+    if (c!=0)
+      return c;
+    c=this.exitTime.compareTo(f2.exitTime);
+    if (c!=0)
+      return c;
+    return this.flightId.compareTo(f2.flightId);
   }
 }

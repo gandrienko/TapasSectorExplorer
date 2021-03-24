@@ -1,3 +1,5 @@
+package data_manage;
+
 import java.io.*;
 import java.util.Vector;
 
@@ -6,7 +8,7 @@ public class DataStore {
   public String attrNames[]=null;
   public Vector<Object[]> data=null;
   
-  protected boolean readData(String fname) {
+  public boolean readData(String fname) {
     fileName=fname;
     try {
       BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(new File(fname)))) ;

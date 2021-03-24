@@ -1,4 +1,8 @@
+import data_manage.*;
+
 import java.io.*;
+import java.time.LocalTime;
+import java.util.ArrayList;
 
 public class Main {
 
@@ -34,7 +38,33 @@ public class Main {
         return;
       System.out.println("Successfully got baseline data!");
       
-      DataStore solution=new DataStore();
+      SectorSet sectors=new SectorSet();
+      int nFlights=0, nFailed=0;
+      for (int i=0; i<baseline.data.size(); i++) {
+        if (sectors.addFlightData(baseline.data.elementAt(i), baseline.attrNames))
+          ++nFlights;
+        else
+          ++nFailed;
+      }
+      System.out.println(nFlights+" successfully added; "+nFailed+" failed.");
+      if (nFlights<1)
+        return;
+      ArrayList<OneSectorData> sortedSectors=sectors.getSectorsSortedByNFlights();
+      if (sortedSectors==null) {
+        System.out.println("Failed to retrieve flight data!");
+        return;
+      }
+      System.out.println("Got data about "+sortedSectors.size()+" sectors!");
+      for (int i=0; i<sortedSectors.size(); i++) {
+        OneSectorData s=sortedSectors.get(i);
+        System.out.println(s.sectorId + " : " +s.getNFlights() + " flights; time range: "+
+                              s.tFirst+".."+s.tLast);
+      }
+      LocalTime range[]=sectors.getTimeRange();
+      System.out.println("Overall time range: "+range[0]+".."+range[1]);
+      
+      /*
+      data_manage.DataStore solution=new data_manage.DataStore();
       System.out.println("Tryng to get solution data ...");
       if (solution.readData(fileNameSolution)) {
         System.out.println("Successfully got solution data!");
@@ -42,5 +72,6 @@ public class Main {
       else {
         System.out.println("Failed to get solution data!");
       }
+      */
     }
 }
