@@ -16,7 +16,7 @@ public class SectorSet {
   public TreeMap<String,OneSectorData> sectors=null;
   
   public OneSectorData getSectorData(String sectorId) {
-    if (sectors==null || sectors.isEmpty())
+    if (sectorId==null || sectors==null || sectors.isEmpty())
       return null;
     return sectors.get(sectorId);
   }

@@ -1,5 +1,8 @@
 import data_manage.*;
+import ui.SectorShowCanvas;
 
+import javax.swing.*;
+import java.awt.*;
 import java.io.*;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -73,5 +76,14 @@ public class Main {
         System.out.println("Failed to get solution data!");
       }
       */
+      JFrame frame = new JFrame("TAPAS Sector Explorer");
+      frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+      SectorShowCanvas sectorShow=new SectorShowCanvas(sectors);
+      sectorShow.setFocusSector(sortedSectors.get(0).sectorId);
+      frame.getContentPane().add(sectorShow, BorderLayout.CENTER);
+      //Display the window.
+      frame.pack();
+      frame.setLocation(50,50);
+      frame.setVisible(true);
     }
 }
