@@ -5,10 +5,11 @@ import data_manage.*;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.image.BufferedImage;
 import java.time.LocalTime;
 import java.util.ArrayList;
 
-public class SectorShowCanvas extends JPanel implements MouseListener {
+public class SectorShowCanvas extends JPanel implements MouseListener, MouseMotionListener {
   public static final int secondsinDay=86400;
   
   public static Color
@@ -50,6 +51,8 @@ public class SectorShowCanvas extends JPanel implements MouseListener {
    */
   protected FlightDrawer flightDrawers[]=null;
   
+  protected BufferedImage off_Image=null;
+  
   
   public SectorShowCanvas(SectorSet sectors) {
     super();
@@ -61,6 +64,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener {
     ToolTipManager.sharedInstance().setDismissDelay(Integer.MAX_VALUE);
     
     addMouseListener(this);
+    addMouseMotionListener(this);
   }
   
   public void setFocusSector(String sectorId) {
@@ -120,8 +124,20 @@ public class SectorShowCanvas extends JPanel implements MouseListener {
     return Math.round(((float)width)*tSinceMidnight/secondsinDay);
   }
   
-  public void paintComponent(Graphics g) {
+  public void paintComponent(Graphics gr) {
     int w=getWidth(), h=getHeight();
+    if (off_Image!=null) {
+      if (off_Image.getWidth()!=w || off_Image.getHeight()!=h)
+        off_Image=null;
+      else {
+        gr.drawImage(off_Image,0,0,null);
+        return;
+      }
+    }
+    
+    off_Image=new BufferedImage(w,h,BufferedImage.TYPE_INT_ARGB);
+    Graphics2D g = off_Image.createGraphics();
+    
     yMarg=g.getFontMetrics().getHeight();
     plotH=h-2*yMarg;
     int asc=g.getFontMetrics().getAscent();
@@ -241,6 +257,11 @@ public class SectorShowCanvas extends JPanel implements MouseListener {
     }
     for (int i=0; i<flightDrawers.length; i++)
       flightDrawers[i].draw(g);
+    gr.drawImage(off_Image,0,0,null);
+  }
+  
+  public void redraw() {
+    paintComponent(getGraphics());
   }
   
   public void addActionListener(ActionListener l){
@@ -305,10 +326,16 @@ public class SectorShowCanvas extends JPanel implements MouseListener {
     return -1;
   }
   
+  protected int hlIdx=-1;
+  
   @Override
   public String getToolTipText(MouseEvent me) {
+    hlIdx=-1;
+    redraw();
     int fIdx=getFlightIdx(me.getX(),me.getY());
     if (fIdx>=0) {
+      hlIdx=fIdx;
+      flightDrawers[fIdx].drawHighlighted(getGraphics());
       FlightInSector f=sInFocus.sortedFlights.get(fIdx);
       String str="<html><body style=background-color:rgb(255,255,204)>"+"Flight <b>"+f.flightId+"</b><hr>";
       FlightInSector ff=null;
@@ -323,7 +350,6 @@ public class SectorShowCanvas extends JPanel implements MouseListener {
             bTableSTarted=true;
           }
           str+="<tr style=\"color:rgb("+r+","+g+","+b+")\"><td>Sector "+ff.sectorId+"</td><td>"+ff.entryTime+".."+ff.exitTime+"</td></tr>";
-          //str+="<p style=\"color:rgb("+r+","+g+","+b+")\">"+"Sector "+ff.sectorId+": "+ff.entryTime+".."+ff.exitTime+"</p>";
         }
       }
       int r=focusSectorColor.getRed(), g=focusSectorColor.getGreen(), b=focusSectorColor.getBlue();
@@ -332,7 +358,6 @@ public class SectorShowCanvas extends JPanel implements MouseListener {
         bTableSTarted=true;
       }
       str+="<tr style=\"color:rgb("+r+","+g+","+b+")\"><td>Sector "+f.sectorId+"</td><td>"+f.entryTime+".."+f.exitTime+"</td></tr>";
-      //str+="<p style=\"color:rgb("+r+","+g+","+b+")\">"+"Sector "+f.sectorId+": "+f.entryTime+".."+f.exitTime+"</p>";
       if (f.nextSectorId!=null && toSectors!=null) {
         OneSectorData s=toSectors.getSectorData(f.nextSectorId);
         ff=(s==null)?null:s.getFlightData(f.flightId,null,f.exitTime);
@@ -343,13 +368,11 @@ public class SectorShowCanvas extends JPanel implements MouseListener {
             bTableSTarted=true;
           }
           str+="<tr style=\"color:rgb("+r+","+g+","+b+")\"><td>Sector "+ff.sectorId+"</td><td>"+ff.entryTime+".."+ff.exitTime+"</td></tr>";
-          //str+="<p style=\"color:rgb("+r+","+g+","+b+")\">"+"Sector "+ff.sectorId+": "+ff.entryTime+".."+ff.exitTime+"</p>";
         }
       }
       if (bTableSTarted)
         str+="</table>";
       str+="</body></html>";
-      //System.out.println(str);
       return str;
     }
     int is[]=getSectorIdx(me.getY());
@@ -375,6 +398,8 @@ public class SectorShowCanvas extends JPanel implements MouseListener {
   
   @Override
   public void mouseClicked(MouseEvent e) {
+    hlIdx=-1;
+    redraw();
     if (e.getClickCount()==2) {
       int is[]=getSectorIdx(e.getY());
       if (is==null || is[0]==0)
@@ -387,7 +412,8 @@ public class SectorShowCanvas extends JPanel implements MouseListener {
   }
   
   @Override
-  public void mousePressed(MouseEvent e) {}
+  public void mousePressed(MouseEvent e) {
+  }
   
   @Override
   public void mouseReleased(MouseEvent e) {}
@@ -396,6 +422,20 @@ public class SectorShowCanvas extends JPanel implements MouseListener {
   public void mouseEntered(MouseEvent e) {}
   
   @Override
-  public void mouseExited(MouseEvent e) {}
+  public void mouseExited(MouseEvent e) {
+    hlIdx=-1;
+    redraw();
+  }
   
+  @Override
+  public void mouseDragged(MouseEvent e) {}
+  
+  @Override
+  public void mouseMoved(MouseEvent me) {
+    hlIdx=-1;
+    redraw();
+    int fIdx=getFlightIdx(me.getX(),me.getY());
+    if (fIdx>=0)
+      flightDrawers[fIdx].drawHighlighted(getGraphics());
+  }
 }

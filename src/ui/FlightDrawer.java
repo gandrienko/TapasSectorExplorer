@@ -12,7 +12,8 @@ public class FlightDrawer {
     fromSectorLineColor=new Color(0,128,128,70),
     fromConnectLineColor=new Color(0,128,128,40),
     toSectorLineColor=new Color(0,0,128,70),
-    toConnectLineColor=new Color(0,0,128,40);
+    toConnectLineColor=new Color(0,0,128,40),
+    highlightColor=Color.yellow;
   
   public String flightId=null;
   /**
@@ -96,5 +97,27 @@ public class FlightDrawer {
     if (path==null)
       return false;
     return path.contains(x,y);
+  }
+  
+  public void drawHighlighted(Graphics g) {
+    if (path==null)
+      return;
+    g.setColor(highlightColor);
+    Stroke origStroke=((Graphics2D)g).getStroke();
+    ((Graphics2D)g).setStroke(thickStroke);
+    g.drawLine(xFocus[0],yFocus[0],xFocus[1],yFocus[1]);
+    ((Graphics2D)g).setStroke(origStroke);
+    if (xPrev[1]>=0) {
+      ((Graphics2D)g).setStroke(thickStroke);
+      g.drawLine(xPrev[0],yPrev[0],xPrev[1],yPrev[1]);
+      ((Graphics2D)g).setStroke(origStroke);
+      g.drawLine(xPrev[1],yPrev[1],xFocus[0],yFocus[0]);
+    }
+    if (xNext[1]>=0) {
+      ((Graphics2D)g).setStroke(thickStroke);
+      g.drawLine(xNext[0],yNext[0],xNext[1],yNext[1]);
+      ((Graphics2D)g).setStroke(origStroke);
+      g.drawLine(xFocus[1],yFocus[1],xNext[0],yNext[0]);
+    }
   }
 }
