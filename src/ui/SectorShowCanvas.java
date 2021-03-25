@@ -310,26 +310,44 @@ public class SectorShowCanvas extends JPanel implements MouseListener {
     int fIdx=getFlightIdx(me.getX(),me.getY());
     if (fIdx>=0) {
       FlightInSector f=sInFocus.sortedFlights.get(fIdx);
-      String str="<html><body style=background-color:rgb(255,255,204)>"+"Flight "+f.flightId;
+      String str="<html><body style=background-color:rgb(255,255,204)>"+"Flight <b>"+f.flightId+"</b><hr>";
       FlightInSector ff=null;
+      boolean bTableSTarted=false;
       if (f.prevSectorId!=null && fromSectors!=null) {
         OneSectorData s=fromSectors.getSectorData(f.prevSectorId);
         ff=(s==null)?null:s.getFlightData(f.flightId,f.entryTime,null);
         if (ff!=null) {
           int r=fromSectorColor.getRed(), g=fromSectorColor.getGreen(), b=fromSectorColor.getBlue();
-          str+="<p style=\"color:rgb("+r+","+g+","+b+")\">"+"Sector "+ff.sectorId+": "+ff.entryTime+".."+ff.exitTime+"</p>";
+          if (!bTableSTarted) {
+            str += "<table border=0>";
+            bTableSTarted=true;
+          }
+          str+="<tr style=\"color:rgb("+r+","+g+","+b+")\"><td>Sector "+ff.sectorId+"</td><td>"+ff.entryTime+".."+ff.exitTime+"</td></tr>";
+          //str+="<p style=\"color:rgb("+r+","+g+","+b+")\">"+"Sector "+ff.sectorId+": "+ff.entryTime+".."+ff.exitTime+"</p>";
         }
       }
       int r=focusSectorColor.getRed(), g=focusSectorColor.getGreen(), b=focusSectorColor.getBlue();
-      str+="<p style=\"color:rgb("+r+","+g+","+b+")\">"+"Sector "+f.sectorId+": "+f.entryTime+".."+f.exitTime+"</p>";
+      if (!bTableSTarted) {
+        str += "<table border=0>";
+        bTableSTarted=true;
+      }
+      str+="<tr style=\"color:rgb("+r+","+g+","+b+")\"><td>Sector "+f.sectorId+"</td><td>"+f.entryTime+".."+f.exitTime+"</td></tr>";
+      //str+="<p style=\"color:rgb("+r+","+g+","+b+")\">"+"Sector "+f.sectorId+": "+f.entryTime+".."+f.exitTime+"</p>";
       if (f.nextSectorId!=null && toSectors!=null) {
         OneSectorData s=toSectors.getSectorData(f.nextSectorId);
         ff=(s==null)?null:s.getFlightData(f.flightId,null,f.exitTime);
         if (ff!=null) {
           r=toSectorColor.getRed(); g=toSectorColor.getGreen(); b=toSectorColor.getBlue();
-          str+="<p style=\"color:rgb("+r+","+g+","+b+")\">"+"Sector "+ff.sectorId+": "+ff.entryTime+".."+ff.exitTime+"</p>";
+          if (!bTableSTarted) {
+            str += "<table border=0>";
+            bTableSTarted=true;
+          }
+          str+="<tr style=\"color:rgb("+r+","+g+","+b+")\"><td>Sector "+ff.sectorId+"</td><td>"+ff.entryTime+".."+ff.exitTime+"</td></tr>";
+          //str+="<p style=\"color:rgb("+r+","+g+","+b+")\">"+"Sector "+ff.sectorId+": "+ff.entryTime+".."+ff.exitTime+"</p>";
         }
       }
+      if (bTableSTarted)
+        str+="</table>";
       str+="</body></html>";
       //System.out.println(str);
       return str;
