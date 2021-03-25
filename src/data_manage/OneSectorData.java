@@ -34,17 +34,7 @@ public class OneSectorData {
     int idx;
     for (idx=0; idx<sortedFlights.size() && f.compareTo(sortedFlights.get(idx))>=0; idx++);
     sortedFlights.add(idx,f);
-    if (flights==null)
-      flights=new TreeMap<String,Integer>();
-    if (!flights.containsKey(f.flightId))
-      flights.put(f.flightId, idx);
-    else {
-      if (repeatedVisits==null)
-        repeatedVisits=new HashSet<String>();
-      repeatedVisits.add(f.flightId);
-      if (flights.get(f.flightId)>idx)
-        flights.put(f.flightId, idx);
-    }
+
     if (tFirst==null || f.entryTime.compareTo(tFirst)<0)
       tFirst=f.entryTime;
     if (tLast==null || f.exitTime.compareTo(tLast)>0)
@@ -57,8 +47,34 @@ public class OneSectorData {
     return sortedFlights.size();
   }
   
+  protected void makeFlightIndex() {
+    if (flights!=null && !flights.isEmpty())
+      return;
+    if (sortedFlights==null || sortedFlights.isEmpty())
+      return;
+    flights=new TreeMap<String,Integer>();
+    repeatedVisits=null;
+    
+    for (int i=0; i<sortedFlights.size(); i++) {
+      FlightInSector f=sortedFlights.get(i);
+      if (!flights.containsKey(f.flightId))
+        flights.put(f.flightId, i);
+      else {
+        if (repeatedVisits==null)
+          repeatedVisits=new HashSet<String>();
+        repeatedVisits.add(f.flightId);
+        if (flights.get(f.flightId)>i)
+          flights.put(f.flightId, i);
+      }
+    }
+  }
+  
   public FlightInSector getFlightData(String flightId, LocalTime tBefore, LocalTime tAfter) {
-    if (flightId==null || flights==null || flights.isEmpty())
+    if (flightId==null || sortedFlights==null || sortedFlights.isEmpty())
+      return null;
+    if (flights==null || flights.isEmpty())
+      makeFlightIndex();
+    if (flights==null || flights.isEmpty())
       return null;
     Integer idx=flights.get(flightId);
     if (idx==null)
