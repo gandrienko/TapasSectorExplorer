@@ -4,10 +4,20 @@ import data_manage.*;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.*;
 import java.time.LocalTime;
 import java.util.ArrayList;
 
-public class SectorShowCanvas extends JPanel {
+public class SectorShowCanvas extends JPanel implements MouseListener {
+  public static final int secondsinDay=86400;
+  
+  public static Color
+      focusSectorColor=Color.red.darker(),
+      focusSectorBkgColor=new Color(128,0,0,30),
+      fromSectorColor=Color.cyan.darker().darker(),
+      fromSectorBkgColor=new Color(0,128,128,30),
+      toSectorColor=Color.blue.darker(),
+      toSectorBkgColor=new Color(0,0,128,30);
   /**
    * Information about all sectors
    */
@@ -25,16 +35,36 @@ public class SectorShowCanvas extends JPanel {
    * The "from" and "to" sectors sorted by the numbers of the flights.
    */
   public ArrayList<OneSectorData> fromSorted=null, toSorted=null;
+  /**
+   * Listeners of selections
+   */
+  protected ArrayList<ActionListener> listeners=null;
+  /**
+   * Used for drawing and calculating positions for times
+   */
+  protected int tMarg=10, tWidth=0, tStep=0;
+  protected int yMarg=0, plotH=0;
+  protected int hFocus=0, hOther=0, vSpace=0, hFrom=0, hTo=0;
+  /**
+   * Each element draws a line or polygon representing a single flight
+   */
+  protected FlightDrawer flightDrawers[]=null;
+  
   
   public SectorShowCanvas(SectorSet sectors) {
     super();
     this.sectors=sectors;
-    setPreferredSize(new Dimension(1500, 1000));
+    Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
+    setPreferredSize(new Dimension(Math.round(0.85f*size.width), Math.round(0.85f*size.height)));
     setBorder(BorderFactory.createLineBorder(Color.YELLOW,1));
     ToolTipManager.sharedInstance().registerComponent(this);
+    ToolTipManager.sharedInstance().setDismissDelay(Integer.MAX_VALUE);
+    
+    addMouseListener(this);
   }
   
   public void setFocusSector(String sectorId) {
+    flightDrawers=null;
     if (sectors==null) return;
     if (sectorId==null) {
       sInFocus = null;
@@ -86,19 +116,22 @@ public class SectorShowCanvas extends JPanel {
   public int getXPos(LocalTime t, int width) {
     if (t==null)
       return -1;
-    final int secondsinDay=86400;
     int tSinceMidnight=t.getHour()*3600+t.getMinute()*60+t.getSecond();
     return Math.round(((float)width)*tSinceMidnight/secondsinDay);
   }
   
   public void paintComponent(Graphics g) {
-    int w=getWidth(), h=getHeight(),
-        yMarg=g.getFontMetrics().getHeight(), plotH=h-2*yMarg,
-        asc=g.getFontMetrics().getAscent();
+    int w=getWidth(), h=getHeight();
+    yMarg=g.getFontMetrics().getHeight();
+    plotH=h-2*yMarg;
+    int asc=g.getFontMetrics().getAscent();
+    
     g.setColor(Color.lightGray);
     g.fillRect(0,0,w,h);
-    int tMarg=10;
-    int tWidth=w-2*tMarg, tStep=tWidth/24;
+    
+    tWidth=w-2*tMarg;
+    tStep=tWidth/24;
+    
     g.setColor(Color.darkGray);
     for (int i=0; i<=24; i++) {
       int x=tMarg+i*tStep;
@@ -111,57 +144,69 @@ public class SectorShowCanvas extends JPanel {
     if (sInFocus==null)
       return;
     
+    RenderingHints rh = new RenderingHints(
+        RenderingHints.KEY_ANTIALIASING,
+        RenderingHints.VALUE_ANTIALIAS_ON);
+    ((Graphics2D)g).setRenderingHints(rh);
+    
     int nFrom=(fromSorted==null)?0:fromSorted.size(),
         nTo=(toSorted==null)?0:toSorted.size();
-    int hFocus=Math.round(0.25f*plotH), hOther=(plotH-hFocus)/(nFrom+nTo);
-    int vSpace=Math.round(0.4f*hOther);
+    hFocus=Math.round(0.2f*plotH);
+    hOther=(plotH-hFocus)/(nFrom+nTo);
+    vSpace=Math.round(0.4f*hOther);
     hOther-=vSpace;
     
-    int hFrom=nFrom*(hOther+vSpace), hTo=nTo*(hOther+vSpace);
+    hFrom=nFrom*(hOther+vSpace);
+    hTo=nTo*(hOther+vSpace);
     hFocus=plotH-hFrom-hTo;
     if (hFocus<20)
       return;
     
-    g.setColor(Color.red.darker());
+    g.setColor(focusSectorColor);
     int y=yMarg+hFrom;
     g.drawLine(0,y,w,y);
     g.drawLine(0,y+hFocus,w,y+hFocus);
-    g.drawString(sInFocus.sectorId,tMarg,y+asc+2);
-    g.setColor(new Color(128,0,0,30));
+    g.drawString(sInFocus.sectorId+" ("+sInFocus.getNFlights()+")",tMarg,y+asc+2);
+    g.setColor(focusSectorBkgColor);
     g.fillRect(0,y,w,hFocus);
     
     for (int i=0; i<nFrom; i++) {
       y=yMarg+i*(hOther+vSpace);
-      g.setColor(Color.cyan.darker().darker());
+      g.setColor(fromSectorColor);
       g.drawLine(0,y,w,y);
       g.drawLine(0,y+hOther,w,y+hOther);
       OneSectorData s=fromSorted.get(nFrom-i-1);
-      g.drawString(s.sectorId,tMarg,y+asc+2);
-      g.setColor(new Color(0,128,128,30));
+      g.drawString(s.sectorId+" ("+s.getNFlights()+")",tMarg,y+asc+2);
+      g.setColor(fromSectorBkgColor);
       g.fillRect(0,y,w,hOther);
     }
     
     for (int i=0; i<nTo; i++) {
       OneSectorData s=toSorted.get(i);
       y=yMarg+hFrom+hFocus+vSpace+i*(hOther+vSpace);
-      g.setColor(Color.blue.darker());
+      g.setColor(toSectorColor);
       g.drawLine(0,y,w,y);
       g.drawLine(0,y+hOther,w,y+hOther);
-      g.drawString(s.sectorId,tMarg,y+asc+2);
-      g.setColor(new Color(0,0,128,30));
+      g.drawString(s.sectorId+" ("+s.getNFlights()+")",tMarg,y+asc+2);
+      g.setColor(toSectorBkgColor);
       g.fillRect(0,y,w,hOther);
     }
     
-    Stroke origStroke=((Graphics2D)g).getStroke(), thickStroke=new BasicStroke(2);
+    if (flightDrawers==null) {
+      flightDrawers=new FlightDrawer[sInFocus.sortedFlights.size()];
+      for (int i=0; i<flightDrawers.length; i++) {
+        flightDrawers[i]=new FlightDrawer();
+        flightDrawers[i].flightId=sInFocus.sortedFlights.get(i).flightId;
+      }
+    }
   
     y=yMarg+hFrom;
     for (int i=0; i<sInFocus.sortedFlights.size(); i++) {
       FlightInSector f=sInFocus.sortedFlights.get(i);
       int x1=getXPos(f.entryTime,tWidth)+tMarg, x2=getXPos(f.exitTime,tWidth)+tMarg;
-      g.setColor(new Color(128,0,0,100));
-      ((Graphics2D)g).setStroke(thickStroke);
-      g.drawLine(x1,y,x2,y+hFocus);
-      ((Graphics2D)g).setStroke(origStroke);
+      flightDrawers[i].setXYFocus(x1,x2,y,y+hFocus);
+      flightDrawers[i].setNoPrevious();
+      flightDrawers[i].setNoNext();
       FlightInSector ff=null;
       if (f.prevSectorId!=null && fromSectors!=null) {
         OneSectorData s=fromSectors.getSectorData(f.prevSectorId);
@@ -173,19 +218,166 @@ public class SectorShowCanvas extends JPanel {
               sIdx=j;
           if (sIdx>=0) {
             int yy=yMarg+(nFrom-sIdx-1)*(hOther+vSpace);
-            g.setColor(new Color(0,128,128,100));
             int xx1=getXPos(ff.entryTime,tWidth)+tMarg, xx2=getXPos(ff.exitTime,tWidth)+tMarg;
-            ((Graphics2D)g).setStroke(thickStroke);
-            g.drawLine(xx1,yy,xx2,yy+hOther);
-            ((Graphics2D)g).setStroke(origStroke);
-            g.setColor(new Color(0,128,128,50));
-            g.drawLine(xx2,yy+hOther,x1,y);
+            flightDrawers[i].setXYPrevious(xx1,xx2,yy,yy+hOther);
+          }
+        }
+      }
+      if (f.nextSectorId!=null && toSectors!=null) {
+        OneSectorData s=toSectors.getSectorData(f.nextSectorId);
+        ff=(s==null)?null:s.getFlightData(f.flightId,null,f.exitTime);
+        if (ff!=null) {
+          int sIdx=-1;
+          for (int j=0; j<toSorted.size() && sIdx<0; j++)
+            if (s.sectorId.equals(toSorted.get(j).sectorId))
+              sIdx=j;
+          if (sIdx>=0) {
+            int yy=yMarg+hFrom+hFocus+vSpace+sIdx*(hOther+vSpace);
+            int xx1=getXPos(ff.entryTime,tWidth)+tMarg, xx2=getXPos(ff.exitTime,tWidth)+tMarg;
+            flightDrawers[i].setXYNext(xx1,xx2,yy,yy+hOther);
           }
         }
       }
     }
-    
-    
+    for (int i=0; i<flightDrawers.length; i++)
+      flightDrawers[i].draw(g);
   }
+  
+  public void addActionListener(ActionListener l){
+    if (l==null) return;
+    if (listeners==null)
+      listeners=new ArrayList<ActionListener>(10);
+    if (!listeners.contains(l))
+      listeners.add(l);
+  }
+  
+  public void removeActionListener(ActionListener l) {
+    if (l==null || listeners==null)
+      return;
+    listeners.remove(l);
+  }
+  
+  public void sendActionEvent(String command) {
+    if (listeners==null || listeners.isEmpty())
+      return;
+    ActionEvent ae=new ActionEvent(this,ActionEvent.ACTION_PERFORMED,command);
+    for (int i=0; i<listeners.size(); i++)
+      listeners.get(i).actionPerformed(ae);
+  }
+  
+  /**
+   * Determines in what sector the given vertical position fits.
+   * @param yPos - vertical position (particularly, of the mouse cursor)
+   * @return array of 2 elements:
+   *   [0]: -1 (previous sector), 0 (focus sector), or 1 (next sector)
+   *   [1]: index of the sector in the corresponding list
+   */
+  protected int[] getSectorIdx(int yPos){
+    if (yPos<=yMarg || yPos>=yMarg+plotH)
+      return null;
+    if (yPos>yMarg+hFrom && yPos<=yMarg+hFrom+hFocus) {
+      int is[]={0,0};
+      return is;
+    }
+    if (yPos<=yMarg+hFrom) {
+      int sIdx=(yPos-yMarg)/(hOther+vSpace);
+      if (yPos>yMarg+sIdx*(hOther+vSpace)+hOther) //the mouse is in a vertical space between sectors
+        return null;
+      int is[]={-1,fromSorted.size()-sIdx-1};
+      return is;
+    }
+    if (yPos>yMarg+hFrom+hFocus+vSpace) {
+      int sIdx=(yPos-yMarg-hFrom-hFocus)/(hOther+vSpace);
+      if (yPos<yMarg+hFrom+hFocus+sIdx*(hOther+vSpace)+vSpace) //the mouse is in a vertical space between sectors
+        return null;
+      int is[]={1,sIdx};
+      return is;
+    }
+    return null;
+  }
+  
+  public int getFlightIdx(int x,int y){
+    if (flightDrawers==null)
+      return -1;
+    for (int i=0; i<flightDrawers.length; i++)
+      if (flightDrawers[i].contains(x,y))
+        return i;
+    return -1;
+  }
+  
+  @Override
+  public String getToolTipText(MouseEvent me) {
+    int fIdx=getFlightIdx(me.getX(),me.getY());
+    if (fIdx>=0) {
+      FlightInSector f=sInFocus.sortedFlights.get(fIdx);
+      String str="<html><body style=background-color:rgb(255,255,204)>"+"Flight "+f.flightId;
+      FlightInSector ff=null;
+      if (f.prevSectorId!=null && fromSectors!=null) {
+        OneSectorData s=fromSectors.getSectorData(f.prevSectorId);
+        ff=(s==null)?null:s.getFlightData(f.flightId,f.entryTime,null);
+        if (ff!=null) {
+          int r=fromSectorColor.getRed(), g=fromSectorColor.getGreen(), b=fromSectorColor.getBlue();
+          str+="<p style=\"color:rgb("+r+","+g+","+b+")\">"+"Sector "+ff.sectorId+": "+ff.entryTime+".."+ff.exitTime+"</p>";
+        }
+      }
+      int r=focusSectorColor.getRed(), g=focusSectorColor.getGreen(), b=focusSectorColor.getBlue();
+      str+="<p style=\"color:rgb("+r+","+g+","+b+")\">"+"Sector "+f.sectorId+": "+f.entryTime+".."+f.exitTime+"</p>";
+      if (f.nextSectorId!=null && toSectors!=null) {
+        OneSectorData s=toSectors.getSectorData(f.nextSectorId);
+        ff=(s==null)?null:s.getFlightData(f.flightId,null,f.exitTime);
+        if (ff!=null) {
+          r=toSectorColor.getRed(); g=toSectorColor.getGreen(); b=toSectorColor.getBlue();
+          str+="<p style=\"color:rgb("+r+","+g+","+b+")\">"+"Sector "+ff.sectorId+": "+ff.entryTime+".."+ff.exitTime+"</p>";
+        }
+      }
+      str+="</body></html>";
+      //System.out.println(str);
+      return str;
+    }
+    int is[]=getSectorIdx(me.getY());
+    if (is==null || is[1]<0)
+      return null;
+    if (is[0]==0)
+      return "<html><body style=background-color:rgb(255,255,204)>"+
+                 "Sector "+sInFocus.sectorId+": "+sInFocus.getNFlights()+" flights;<br>"+
+                 "time range = "+sInFocus.tFirst+".."+sInFocus.tLast+
+                 "</body></html>";
+    OneSectorData s=(is[0]<0)?fromSorted.get(is[1]):toSorted.get(is[1]),
+      sAll=sectors.getSectorData(s.sectorId);
+    return "<html><body style=background-color:rgb(255,255,204)>"+
+               "Sector "+s.sectorId+":<br>"+s.getNFlights()+" flights "+(
+               (is[0]<0)?"go to":"come from")+" sector "+sInFocus.sectorId+";<br>"+
+               "time range = "+s.tFirst+".."+s.tLast+";<br>"+
+               sAll.getNFlights()+" flights total;<br>" +
+               "overall time range = "+sAll.tFirst+".."+sAll.tLast+
+               "</body></html>";
+  }
+  
+  //---------------------- MouseListener ----------------------------------------
+  
+  @Override
+  public void mouseClicked(MouseEvent e) {
+    if (e.getClickCount()==2) {
+      int is[]=getSectorIdx(e.getY());
+      if (is==null || is[0]==0)
+        return;
+      if (is[0]==-1)
+        sendActionEvent("select_sector:"+fromSorted.get(is[1]).sectorId);
+      else
+        sendActionEvent("select_sector:"+toSorted.get(is[1]).sectorId);
+    }
+  }
+  
+  @Override
+  public void mousePressed(MouseEvent e) {}
+  
+  @Override
+  public void mouseReleased(MouseEvent e) {}
+  
+  @Override
+  public void mouseEntered(MouseEvent e) {}
+  
+  @Override
+  public void mouseExited(MouseEvent e) {}
   
 }

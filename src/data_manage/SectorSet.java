@@ -43,6 +43,16 @@ public class SectorSet {
     return sorted;
   }
   
+  public ArrayList<OneSectorData> getSectorsSortedByIdentifiers(){
+    if (sectors==null || sectors.isEmpty())
+      return null;
+    ArrayList<OneSectorData> sorted=new ArrayList<OneSectorData>(sectors.size());
+    Collection values=sectors.values();
+    for (Iterator<OneSectorData> it=values.iterator(); it.hasNext();)
+      sorted.add(it.next());
+    return sorted;
+  }
+
   public LocalTime[] getTimeRange(){
     if (sectors==null || sectors.isEmpty())
       return null;
@@ -56,6 +66,12 @@ public class SectorSet {
         range[1]=s.tLast;
     }
     return range;
+  }
+  
+  public int getNSectors() {
+    if (sectors==null)
+      return 0;
+    return sectors.size();
   }
   
   /**

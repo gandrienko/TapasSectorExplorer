@@ -1,5 +1,5 @@
 import data_manage.*;
-import ui.SectorShowCanvas;
+import ui.SectorShowPanel;
 
 import javax.swing.*;
 import java.awt.*;
@@ -58,11 +58,13 @@ public class Main {
         return;
       }
       System.out.println("Got data about "+sortedSectors.size()+" sectors!");
+      /*
       for (int i=0; i<sortedSectors.size(); i++) {
         OneSectorData s=sortedSectors.get(i);
         System.out.println(s.sectorId + " : " +s.getNFlights() + " flights; time range: "+
                               s.tFirst+".."+s.tLast);
       }
+      */
       LocalTime range[]=sectors.getTimeRange();
       System.out.println("Overall time range: "+range[0]+".."+range[1]);
       
@@ -78,8 +80,7 @@ public class Main {
       */
       JFrame frame = new JFrame("TAPAS Sector Explorer");
       frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-      SectorShowCanvas sectorShow=new SectorShowCanvas(sectors);
-      sectorShow.setFocusSector(sortedSectors.get(0).sectorId);
+      SectorShowPanel sectorShow=new SectorShowPanel(sectors);
       frame.getContentPane().add(sectorShow, BorderLayout.CENTER);
       //Display the window.
       frame.pack();
