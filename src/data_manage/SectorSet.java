@@ -14,6 +14,10 @@ public class SectorSet {
    * Data about the sectors, sorted according to the sector identifiers
    */
   public TreeMap<String,OneSectorData> sectors=null;
+  /**
+   * For each flight: the sequence of visited sectors, in chronological order
+   */
+  public TreeMap<String,ArrayList<FlightInSector>> flights=null;
   
   public OneSectorData getSectorData(String sectorId) {
     if (sectorId==null || sectors==null || sectors.isEmpty())
@@ -94,6 +98,15 @@ public class SectorSet {
       addSector(s);
     }
     s.addFlight(f);
+    if (flights==null) {
+      flights=new TreeMap<String, ArrayList<FlightInSector>>();
+    }
+    ArrayList<FlightInSector> sequence=flights.get(f.flightId);
+    if (sequence==null)
+      sequence=new ArrayList<FlightInSector>(20);
+    int idx;
+    for (idx=0; idx<sequence.size() && f.exitTime.compareTo(sequence.get(idx).entryTime)<0; idx++);
+    sequence.add(idx,f);
     return true;
   }
 }
