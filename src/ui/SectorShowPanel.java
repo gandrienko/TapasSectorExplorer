@@ -19,6 +19,10 @@ public class SectorShowPanel extends JPanel  implements ActionListener {
    */
   protected SectorShowCanvas canvas=null;
   /**
+   * A panel with information about selected flights
+   */
+  protected SelectedFlightsInfoShow flInfoPanel=null;
+  /**
    * List of sectors ordered by their identifiers
    */
   protected ArrayList<OneSectorData> sortedSectors=null;
@@ -68,12 +72,21 @@ public class SectorShowPanel extends JPanel  implements ActionListener {
     p.add(backButton);
     
     canvas=new SectorShowCanvas(sectors);
-    add(canvas,BorderLayout.CENTER);
     canvas.setFocusSector(sortedSectors.get(maxIdx).sectorId);
     canvas.addActionListener(this);
   
+    flInfoPanel=new SelectedFlightsInfoShow(sectors);
+    flInfoPanel.addActionListener(this);
+    flInfoPanel.setCurrentSectors(canvas.getFocusSectorId(),canvas.getFromSectorIds(),canvas.getToSectorIds());
+    JScrollPane scp=new JScrollPane(flInfoPanel);
+    JSplitPane spl=new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,canvas,scp);
+    add(spl,BorderLayout.CENTER);
+    spl.setDividerLocation(canvas.getPreferredSize().width);
+  
     sectorSelections=new ArrayList<Integer>(100);
     sectorSelections.add(maxIdx);
+    setPreferredSize(new Dimension(canvas.getPreferredSize().width+150,
+        canvas.getPreferredSize().height+50));
   }
   
   
@@ -97,15 +110,26 @@ public class SectorShowPanel extends JPanel  implements ActionListener {
           backButton.setEnabled(true);
       }
       canvas.setFocusSector(sortedSectors.get(selIdx).sectorId);
+      flInfoPanel.setCurrentSectors(canvas.getFocusSectorId(),canvas.getFromSectorIds(),canvas.getToSectorIds());
+      flInfoPanel.setSelectedFlights(canvas.getSelectedVisibleObjectIds());
     }
     else
-    if (ae.getSource().equals(canvas)) {
-      String id=ae.getActionCommand();
-      if (id.startsWith("select_sector:")) {
-        id=id.substring(14);
+    if (ae.getSource().equals(canvas) || ae.getSource().equals(flInfoPanel)) {
+      String cmd=ae.getActionCommand();
+      if (cmd.equals("object_selection")) {
+        flInfoPanel.setSelectedFlights(canvas.getSelectedVisibleObjectIds());
+      }
+      else
+      if (cmd.startsWith("deselect_object:"))  {
+        String oId=cmd.substring(16);
+        canvas.deselectObject(oId);
+      }
+      else
+      if (cmd.startsWith("select_sector:")) {
+        cmd=cmd.substring(14);
         int sIdx=-1;
         for (int i=0; i<sortedSectors.size() && sIdx<0; i++)
-          if (id.equals(sortedSectors.get(i).sectorId))
+          if (cmd.equals(sortedSectors.get(i).sectorId))
             sIdx=i;
         if (sIdx>=0 && sIdx!=chSectors.getSelectedIndex())
           chSectors.setSelectedIndex(sIdx);

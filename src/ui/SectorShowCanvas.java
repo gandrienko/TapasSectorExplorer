@@ -66,7 +66,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     super();
     this.sectors=sectors;
     Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
-    setPreferredSize(new Dimension(Math.round(0.85f*size.width), Math.round(0.85f*size.height)));
+    setPreferredSize(new Dimension(Math.round(0.7f*size.width), Math.round(0.85f*size.height)));
     setBorder(BorderFactory.createLineBorder(Color.YELLOW,1));
     ToolTipManager.sharedInstance().registerComponent(this);
     ToolTipManager.sharedInstance().setDismissDelay(Integer.MAX_VALUE);
@@ -123,7 +123,29 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       toSorted=toSectors.getSectorsSortedByNFlights();
     }
     off_Image=null;
-    repaint();
+    redraw();
+  }
+  
+  public String getFocusSectorId(){
+    return sInFocus.sectorId;
+  }
+  
+  public ArrayList<String> getFromSectorIds() {
+    if (fromSorted==null || fromSorted.isEmpty())
+      return null;
+    ArrayList<String> ids=new ArrayList<String>(fromSorted.size());
+    for (int i=0; i<fromSorted.size(); i++)
+      ids.add(fromSorted.get(i).sectorId);
+    return ids;
+  }
+  
+  public ArrayList<String> getToSectorIds() {
+    if (toSorted==null || toSorted.isEmpty())
+      return null;
+    ArrayList<String> ids=new ArrayList<String>(toSorted.size());
+    for (int i=0; i<toSorted.size(); i++)
+      ids.add(toSorted.get(i).sectorId);
+    return ids;
   }
   
   public int getXPos(LocalTime t, int width) {
@@ -135,6 +157,8 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
   
   public void paintComponent(Graphics gr) {
     int w=getWidth(), h=getHeight();
+    if (w<10 || h<10)
+      return;
     if (off_Image!=null) {
       if (off_Image.getWidth()!=w || off_Image.getHeight()!=h)
         off_Image=null;
@@ -298,6 +322,35 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     paintComponent(getGraphics());
   }
   
+  public ArrayList<String> getSelectedObjectIds() {
+    return selectedObjIds;
+  }
+  
+  public ArrayList<String> getSelectedVisibleObjectIds() {
+    if (selectedObjIds==null || selectedObjIds.isEmpty())
+      return null;
+    ArrayList<String> drawn= new ArrayList<String>(selectedObjIds.size());
+    for (int i=0; i<selectedObjIds.size(); i++) {
+      int idx = getDrawnObjIndex(selectedObjIds.get(i));
+      if (idx >= 0)
+        drawn.add(flightDrawers[idx].flightId);
+    }
+    if (drawn.isEmpty())
+      return null;
+    return drawn;
+  }
+
+  public void deselectObject(String oId){
+    if (oId==null || selectedObjIds==null || selectedObjIds.isEmpty())
+      return;
+    int idx=selectedObjIds.indexOf(oId);
+    if (idx>=0) {
+      selectedObjIds.remove(idx);
+      redraw();
+      sendActionEvent("object_selection");
+    }
+  }
+  
   public void addActionListener(ActionListener l){
     if (l==null) return;
     if (listeners==null)
@@ -435,6 +488,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
         if (selectedObjIds!=null && !selectedObjIds.isEmpty()) {
           selectedObjIds.clear();
           redraw();
+          sendActionEvent("object_selection");
         }
         return;
       }
@@ -475,6 +529,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
                 selectedObjIds.remove(flightDrawers[i].flightId);
             }
         }
+        sendActionEvent("object_selection");
       }
       dragX0=-1; dragY0=-1;
       dragged=false;
@@ -491,10 +546,12 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
               selectedObjIds = new ArrayList<String>(50);
             selectedObjIds.add(flightDrawers[fIdx].flightId);
             redraw();
+            sendActionEvent("object_selection");
           }
           else {
             selectedObjIds.remove(flightDrawers[fIdx].flightId);
             redraw();
+            sendActionEvent("object_selection");
           }
       }
     }

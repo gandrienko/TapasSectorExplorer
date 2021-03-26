@@ -102,11 +102,24 @@ public class SectorSet {
       flights=new TreeMap<String, ArrayList<FlightInSector>>();
     }
     ArrayList<FlightInSector> sequence=flights.get(f.flightId);
-    if (sequence==null)
-      sequence=new ArrayList<FlightInSector>(20);
+    if (sequence==null) {
+      sequence = new ArrayList<FlightInSector>(20);
+      flights.put(f.flightId,sequence);
+    }
     int idx;
-    for (idx=0; idx<sequence.size() && f.exitTime.compareTo(sequence.get(idx).entryTime)<0; idx++);
+    for (idx=0; idx<sequence.size() && f.entryTime.compareTo(sequence.get(idx).exitTime)>=0; idx++);
     sequence.add(idx,f);
     return true;
+  }
+  
+  /**
+   * Returns the sequence of sector visits of a given flight
+   * @param flightId - identifier of the flight
+   * @return sequence of chronologically ordered sector visits
+   */
+  public ArrayList<FlightInSector> getSectorVisitSequence(String flightId){
+    if (flightId==null || flights==null)
+      return null;
+    return flights.get(flightId);
   }
 }
