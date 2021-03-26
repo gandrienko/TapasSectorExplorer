@@ -431,7 +431,14 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     clicked=e.getClickCount()==1;
     if (e.getClickCount()==2) {
       int is[]=getSectorIdx(e.getY());
-      if (is==null || is[0]==0)
+      if (is==null) {
+        if (selectedObjIds!=null && !selectedObjIds.isEmpty()) {
+          selectedObjIds.clear();
+          redraw();
+        }
+        return;
+      }
+      if (is[0]==0)
         return;
       hlIdx = -1;
       if (is[0]==-1)

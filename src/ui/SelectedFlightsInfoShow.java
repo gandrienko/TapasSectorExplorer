@@ -1,4 +1,6 @@
 package ui;
 
-public class SelectedFlightsInfoShow {
+import javax.swing.*;
+
+public class SelectedFlightsInfoShow extends JPanel {
 }
