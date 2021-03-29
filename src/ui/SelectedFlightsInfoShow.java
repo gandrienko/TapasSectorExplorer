@@ -15,9 +15,9 @@ public class SelectedFlightsInfoShow extends JPanel implements ItemListener, Mou
    */
   public SectorSet sectors=null;
   /**
-   * Identifiers of selected flights
+   * Identifiers of selected flights and identifiers of those of them that are currently shown
    */
-  public ArrayList<String> selectedFlIds=null;
+  public ArrayList<String> selectedFlIds=null, shownFlIds=null;
   /**
    * Identifier of the sector that is currently in focus 
    */
@@ -112,6 +112,8 @@ public class SelectedFlightsInfoShow extends JPanel implements ItemListener, Mou
    */
   protected ArrayList<JCheckBox> flCB=null; //each checkbox corresponds to one flight
   protected ArrayList<JLabel> svLabels=null; //each label corresponds to one visit of a sector by a flight
+  protected ArrayList<JPanel> flPanels=null; //each panel corresponds to one flight,
+                                             // includes a checkbox and several labels
   
   protected void makeInterior() {
     removeAll();
@@ -120,36 +122,79 @@ public class SelectedFlightsInfoShow extends JPanel implements ItemListener, Mou
     if (svLabels!=null)
       svLabels.clear();
     if (sectors!=null && selectedFlIds!=null && !selectedFlIds.isEmpty()) {
-      for (int i=0; i<selectedFlIds.size(); i++) {
-        ArrayList<FlightInSector> seq=sectors.getSectorVisitSequence(selectedFlIds.get(i));
-        if (seq==null || seq.isEmpty())
-          continue;
-        if (flCB==null)
-          flCB=new ArrayList<JCheckBox>(50);
-        if (svLabels==null)
-          svLabels=new ArrayList<JLabel>(300);
-        JCheckBox cb=new JCheckBox(seq.get(0).flightId,true);
-        cb.addItemListener(this);
-        cb.setBackground(cbBkgColor);
-        flCB.add(cb);
-        add(cb);
-        add(Box.createRigidArea(new Dimension(0, 5)));
-        for (int j=0; j<seq.size(); j++) {
-          FlightInSector f=seq.get(j);
-          JLabel lab=new JLabel(f.sectorId+": "+f.entryTime+".."+f.exitTime);
-          if (f.sectorId.equals(focusSectorId))
-            lab.setForeground(SectorShowCanvas.focusSectorColor);
-          else
-          if (fromSectorIds!=null && fromSectorIds.contains(f.sectorId))
-            lab.setForeground(SectorShowCanvas.fromSectorColor);
-          else
-          if (toSectorIds!=null && toSectorIds.contains(f.sectorId))
-            lab.setForeground(SectorShowCanvas.toSectorColor);
-          svLabels.add(lab);
-          add(lab);
-          add(Box.createRigidArea(new Dimension(0, 3)));
+      boolean shown[]=(shownFlIds==null || shownFlIds.isEmpty())?null:new boolean[selectedFlIds.size()];
+      if (shown!=null) {
+        for (int i=0; i<shown.length; i++)
+          shown[i]=false;
+        for (int i=shownFlIds.size()-1; i>=0; i--) {
+          int idx=selectedFlIds.indexOf(shownFlIds.get(i));
+          if (idx>=0) {
+            shown[idx]=true;
+            JPanel pan=flPanels.get(i);
+            add(pan);
+            add(Box.createRigidArea(new Dimension(0, 3)));
+            for (int j=0; j<pan.getComponentCount(); j++)
+              if (pan.getComponent(j) instanceof JCheckBox)
+                flCB.add((JCheckBox)pan.getComponent(j));
+              else
+              if (pan.getComponent(j) instanceof JLabel)
+                svLabels.add((JLabel)pan.getComponent(j));
+          }
+          else {
+            flPanels.remove(i);
+            shownFlIds.remove(i);
+          }
         }
       }
+      for (int i=0; i<selectedFlIds.size(); i++)
+        if (shown==null || !shown[i]) {
+          ArrayList<FlightInSector> seq=sectors.getSectorVisitSequence(selectedFlIds.get(i));
+          if (seq==null || seq.isEmpty())
+            continue;
+          if (flCB==null)
+            flCB=new ArrayList<JCheckBox>(50);
+          if (svLabels==null)
+            svLabels=new ArrayList<JLabel>(300);
+          if (flPanels==null)
+            flPanels=new ArrayList<JPanel>(300);
+          
+          JPanel pan=new JPanel();
+          flPanels.add(pan);
+          pan.setLayout(new BoxLayout(pan,BoxLayout.Y_AXIS));
+          pan.addMouseListener(this);
+          
+          JCheckBox cb=new JCheckBox(seq.get(0).flightId,true);
+          cb.addItemListener(this);
+          cb.setBackground(cbBkgColor);
+          flCB.add(cb);
+          pan.add(cb);
+          pan.add(Box.createRigidArea(new Dimension(0, 5)));
+          
+          for (int j=0; j<seq.size(); j++) {
+            FlightInSector f=seq.get(j);
+            JLabel lab=new JLabel(f.sectorId+": "+f.entryTime+".."+f.exitTime);
+            if (f.sectorId.equals(focusSectorId))
+              lab.setForeground(SectorShowCanvas.focusSectorColor);
+            else
+            if (fromSectorIds!=null && fromSectorIds.contains(f.sectorId))
+              lab.setForeground(SectorShowCanvas.fromSectorColor);
+            else
+            if (toSectorIds!=null && toSectorIds.contains(f.sectorId))
+              lab.setForeground(SectorShowCanvas.toSectorColor);
+            svLabels.add(lab);
+            pan.add(lab);
+            lab.addMouseListener(this);
+            pan.add(Box.createRigidArea(new Dimension(0, 3)));
+          }
+          add(pan);
+          add(Box.createRigidArea(new Dimension(0, 3)));
+        }
+    }
+    else {
+      if (flPanels!=null)
+        flPanels.clear();
+      if (shownFlIds!=null)
+        shownFlIds.clear();
     }
     Dimension pSize=getPreferredSize();
     if (isShowing()) {
@@ -169,11 +214,29 @@ public class SelectedFlightsInfoShow extends JPanel implements ItemListener, Mou
   
   public void mouseClicked(MouseEvent e) {
     if (e.getClickCount()==2) {
-      //
+      if (e.getSource() instanceof JLabel) {//possibly, selection of a sector
+        String txt=((JLabel)e.getSource()).getText();
+        int idx=txt.indexOf(':');
+        if (idx>0)
+          sendActionEvent("select_sector:"+txt.substring(0,idx));
+      }
     }
   }
   public void mousePressed(MouseEvent e) {}
   public void mouseReleased(MouseEvent e) {}
-  public void mouseEntered(MouseEvent e) {}
-  public void mouseExited(MouseEvent e) {}
+  
+  public void mouseEntered(MouseEvent e) {
+    if (e.getSource() instanceof JPanel) {
+      JPanel pan=(JPanel)e.getSource();
+      pan.setBackground(Color.pink);
+      pan.repaint();
+    }
+  }
+  public void mouseExited(MouseEvent e) {
+    if (e.getSource() instanceof JPanel) {
+      JPanel pan=(JPanel)e.getSource();
+      pan.setBackground(this.getBackground());
+      pan.repaint();
+    }
+  }
 }
