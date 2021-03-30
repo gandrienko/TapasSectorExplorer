@@ -1,0 +1,3 @@
+data_baseline="c:\CommonGISprojects\tracks-avia\TAPAS\ATFCM-20210304\baseline20190801.csv"
+data_solution="c:\CommonGISprojects\tracks-avia\TAPAS\ATFCM-20210304\solution20190801.csv"
+sector_capacities="c:\CommonGISprojects\tracks-avia\TAPAS\ATFCM-20210304\scenario_20190801_capacities.csv"
