@@ -7,16 +7,16 @@ import java.awt.*;
  */
 public class FlightDrawer {
   public static Stroke thickStroke=new BasicStroke(3);
-  public static Color focusSectorLineColour=new Color(128,0,0,70),
-    fromSectorLineColor=new Color(0,128,128,70),
+  public static Color focusSectorLineColour=new Color(128,0,0,40),
+    fromSectorLineColor=new Color(0,128,128,50),
     fromConnectLineColor=new Color(0,128,128,40),
-    toSectorLineColor=new Color(0,0,128,70),
+    toSectorLineColor=new Color(0,0,128,40),
     toConnectLineColor=new Color(0,0,128,40),
     highlightColor=Color.yellow,
       highlightBorderColor=new Color(255,255,0,192),
-    selectColor=new Color(0,0,0,192),
-      selectBorderColor=new Color(0,0,0,128),
-    selectCandidateColor=new Color(255,255,255,192);
+    selectColor=new Color(0,0,0,40),
+      selectBorderColor=new Color(0,0,0,20),
+    selectCandidateColor=new Color(255,255,255,96);
   
   public String flightId=null;
   /**

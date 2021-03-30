@@ -8,7 +8,8 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
 
-public class SelectedFlightsInfoShow extends JPanel implements ItemListener, MouseListener {
+public class SelectedFlightsInfoShow extends JPanel
+    implements ItemListener, MouseListener, MouseMotionListener {
   public static Color cbBkgColor=new Color(255,255,204);
   /**
    * Information about all sectors
@@ -39,6 +40,8 @@ public class SelectedFlightsInfoShow extends JPanel implements ItemListener, Mou
     super();
     this.sectors=sectors;
     setLayout(new BoxLayout(this,BoxLayout.Y_AXIS));
+    addMouseMotionListener(this);
+    addMouseListener(this);
   }
   
   public void addActionListener(ActionListener l){
@@ -115,8 +118,11 @@ public class SelectedFlightsInfoShow extends JPanel implements ItemListener, Mou
   protected ArrayList<JPanel> flPanels=null; //each panel corresponds to one flight,
                                              // includes a checkbox and several labels
   
+  protected JPanel hlPanel=null; //highlighted panel
+  
   protected void makeInterior() {
     removeAll();
+    hlPanel=null;
     if (flCB!=null)
       flCB.clear();
     if (svLabels!=null)
@@ -131,14 +137,32 @@ public class SelectedFlightsInfoShow extends JPanel implements ItemListener, Mou
           if (idx>=0) {
             shown[idx]=true;
             JPanel pan=flPanels.get(i);
+            pan.setBackground(this.getBackground());
             add(pan);
             add(Box.createRigidArea(new Dimension(0, 3)));
             for (int j=0; j<pan.getComponentCount(); j++)
               if (pan.getComponent(j) instanceof JCheckBox)
                 flCB.add((JCheckBox)pan.getComponent(j));
               else
-              if (pan.getComponent(j) instanceof JLabel)
-                svLabels.add((JLabel)pan.getComponent(j));
+              if (pan.getComponent(j) instanceof JLabel) {
+                JLabel lab=(JLabel)pan.getComponent(j);
+                String id=lab.getText();
+                int ii=id.indexOf(':');
+                if (ii>0) {
+                  id = id.substring(0, ii);
+                  if (id.equals(focusSectorId))
+                    lab.setForeground(SectorShowCanvas.focusSectorColor);
+                  else
+                  if (fromSectorIds!=null && fromSectorIds.contains(id))
+                    lab.setForeground(SectorShowCanvas.fromSectorColor);
+                  else
+                  if (toSectorIds!=null && toSectorIds.contains(id))
+                    lab.setForeground(SectorShowCanvas.toSectorColor);
+                  else
+                    lab.setForeground(getForeground());
+                }
+                svLabels.add(lab);
+              }
           }
           else {
             flPanels.remove(i);
@@ -161,7 +185,6 @@ public class SelectedFlightsInfoShow extends JPanel implements ItemListener, Mou
           JPanel pan=new JPanel();
           flPanels.add(pan);
           pan.setLayout(new BoxLayout(pan,BoxLayout.Y_AXIS));
-          pan.addMouseListener(this);
           
           JCheckBox cb=new JCheckBox(seq.get(0).flightId,true);
           cb.addItemListener(this);
@@ -188,6 +211,9 @@ public class SelectedFlightsInfoShow extends JPanel implements ItemListener, Mou
           }
           add(pan);
           add(Box.createRigidArea(new Dimension(0, 3)));
+          if (shownFlIds==null)
+            shownFlIds=new ArrayList(100);
+          shownFlIds.add(selectedFlIds.get(i));
         }
     }
     else {
@@ -213,6 +239,7 @@ public class SelectedFlightsInfoShow extends JPanel implements ItemListener, Mou
   }
   
   public void mouseClicked(MouseEvent e) {
+    clearPanelHighlighting();
     if (e.getClickCount()==2) {
       if (e.getSource() instanceof JLabel) {//possibly, selection of a sector
         String txt=((JLabel)e.getSource()).getText();
@@ -224,19 +251,56 @@ public class SelectedFlightsInfoShow extends JPanel implements ItemListener, Mou
   }
   public void mousePressed(MouseEvent e) {}
   public void mouseReleased(MouseEvent e) {}
+  public void mouseEntered(MouseEvent e) {}
+  public void mouseExited(MouseEvent e) {
+    Point p=getMousePosition();
+    if (p==null || !getBounds().contains(p.x,p.y)) {
+      clearPanelHighlighting();
+    }
+  }
   
-  public void mouseEntered(MouseEvent e) {
-    if (e.getSource() instanceof JPanel) {
-      JPanel pan=(JPanel)e.getSource();
-      pan.setBackground(Color.pink);
+  protected void clearPanelHighlighting(){
+    if (hlPanel!=null) {
+      JPanel pan=hlPanel;
+      hlPanel=null;
+      int pIdx=-1;
+      for (int i=0; i<flPanels.size() && pIdx<0; i++)
+        if (pan.equals(flPanels.get(i)))
+          pIdx=i;
+      if (pIdx>=0)
+        sendActionEvent("dehighlight_object:"+shownFlIds.get(pIdx));
+      pan.setBackground(getBackground());
       pan.repaint();
     }
   }
-  public void mouseExited(MouseEvent e) {
-    if (e.getSource() instanceof JPanel) {
-      JPanel pan=(JPanel)e.getSource();
-      pan.setBackground(this.getBackground());
-      pan.repaint();
+  
+  public void mouseMoved(MouseEvent e) {
+    Point p=getMousePosition();
+    if (p!=null && getBounds().contains(p.x,p.y)) {
+      if (flPanels==null || flPanels.isEmpty())
+        return;
+      int pIdx=-1;
+      for (int i=0; i<flPanels.size() && pIdx<0; i++)
+        if (flPanels.get(i).getBounds().contains(p.x,p.y))
+          pIdx=i;
+      if (pIdx<0)
+        clearPanelHighlighting();
+      else {
+        JPanel pan=flPanels.get(pIdx);
+        if (!pan.equals(hlPanel)) {
+          sendActionEvent("highlight_object:"+shownFlIds.get(pIdx));
+          clearPanelHighlighting();
+          hlPanel=pan;
+          pan.setBackground(Color.pink);
+          pan.repaint();
+        }
+      }
     }
+    else
+      clearPanelHighlighting();
+  }
+  
+  public void mouseDragged(MouseEvent e) {
+    //
   }
 }

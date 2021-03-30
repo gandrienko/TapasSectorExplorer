@@ -125,6 +125,16 @@ public class SectorShowPanel extends JPanel  implements ActionListener {
         canvas.deselectObject(oId);
       }
       else
+      if (cmd.startsWith("highlight_object:"))  {
+        String oId=cmd.substring(17);
+        canvas.highlightObject(oId);
+      }
+      else
+      if (cmd.startsWith("dehighlight_object:"))  {
+        String oId=cmd.substring(19);
+        canvas.dehighlightObject(oId);
+      }
+      else
       if (cmd.startsWith("select_sector:")) {
         cmd=cmd.substring(14);
         int sIdx=-1;
