@@ -9,10 +9,15 @@ import java.util.TreeMap;
  * Contains data describing flights visiting one sector
  */
 public class OneSectorData {
+  public static final int minutesInDay=1440;
   /**
    * Sector identifier
    */
   public String sectorId=null;
+  /**
+   * Capacity of this sector
+   */
+  public int capacity=0;
   /**
    * Data about the flights that visited this sector, sorted by the entry and exit times
    */
@@ -25,6 +30,22 @@ public class OneSectorData {
   public HashSet<String> repeatedVisits=null;
   
   public LocalTime tFirst=null, tLast=null;
+  /**
+   * Last computed hourly counts of the flights
+   */
+  protected int flightCounts[]=null;
+  /**
+   * The time step of the last computed hourly flight counts
+   */
+  protected int tStepFlightCounts =0;
+  /**
+   * Last computed hourly counts of the sector entries
+   */
+  protected int entryCounts[]=null;
+  /**
+   * The time step of the last computed hourly entry counts
+   */
+  protected int tStepEntryCounts=0;
   
   public synchronized void addFlight(FlightInSector f) {
     if (f==null || f.entryTime==null)
@@ -45,6 +66,63 @@ public class OneSectorData {
     if (sortedFlights==null)
       return 0;
     return sortedFlights.size();
+  }
+  /**
+   * Computes hourly flight counts with the given time step, in minutes
+   */
+  public int[] getHourlyFlightCounts(int tStep) {
+    if (tStep<=0)
+      return null;
+    if (flightCounts!=null && tStepFlightCounts ==tStep)
+      return flightCounts;
+    int nSteps=minutesInDay/tStep;
+    if (nSteps*tStep<minutesInDay)
+      ++nSteps;
+    int counts[]=new int[nSteps];
+    for (int i=0; i<nSteps; i++)
+      counts[i]=0;
+    if (sortedFlights!=null)
+      for (int i=0; i<sortedFlights.size(); i++) {
+        FlightInSector f=sortedFlights.get(i);
+        if (f.entryTime==null || f.exitTime==null)
+          continue;
+        int m1=f.entryTime.getHour()*60+f.entryTime.getMinute(),
+            m2=f.exitTime.getHour()*60+f.exitTime.getMinute()+60;
+        int idx1=m1/tStep, idx2=m2/tStep;
+        for (int j=idx1; j<=idx2 && j<counts.length; j++)
+          ++counts[j];
+      }
+    flightCounts=counts;
+    tStepFlightCounts =tStep;
+    return counts;
+  }
+  /**
+   * Computes hourly counts of sector entries with the given time step, in minutes
+   */
+  public int[] getHourlyEntryCounts(int tStep) {
+    if (tStep<=0)
+      return null;
+    if (entryCounts!=null && tStepEntryCounts ==tStep)
+      return entryCounts;
+    int nSteps=minutesInDay/tStep;
+    if (nSteps*tStep<minutesInDay)
+      ++nSteps;
+    int counts[]=new int[nSteps];
+    for (int i=0; i<nSteps; i++)
+      counts[i]=0;
+    if (sortedFlights!=null)
+      for (int i=0; i<sortedFlights.size(); i++) {
+        FlightInSector f=sortedFlights.get(i);
+        if (f.entryTime==null)
+          continue;
+        int m1=f.entryTime.getHour()*60+f.entryTime.getMinute(), m2=m1+60;
+        int idx1=m1/tStep, idx2=m2/tStep;
+        for (int j=idx1; j<=idx2 && j<counts.length; j++)
+          ++counts[j];
+      }
+    entryCounts=counts;
+    tStepEntryCounts =tStep;
+    return counts;
   }
   
   protected void makeFlightIndex() {

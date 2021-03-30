@@ -64,4 +64,17 @@ public class DataStore {
     }
     return attrNames!=null && data!=null && data.size()>0;
   }
+  
+  public boolean hasData() {
+    return attrNames!=null && attrNames.length>0 && data!=null && !data.isEmpty();
+  }
+  
+  public int getAttrIndex(String attrName) {
+    if (attrNames==null || attrName==null)
+      return -1;
+    for (int i=0; i<attrNames.length; i++)
+      if (attrName.equalsIgnoreCase(attrNames[i]))
+        return i;
+    return -1;
+  }
 }

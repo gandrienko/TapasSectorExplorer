@@ -38,6 +38,10 @@ public class SectorShowPanel extends JPanel  implements ActionListener {
    * Used for returning to previous sector selection
    */
   protected JButton backButton=null;
+  /**
+   * Used for setting the aggregation time step
+   */
+  protected JComboBox chAggrStep=null;
   
   public SectorShowPanel(SectorSet sectors) {
     super();
@@ -71,9 +75,25 @@ public class SectorShowPanel extends JPanel  implements ActionListener {
     backButton.addActionListener(this);
     p.add(backButton);
     
+    chAggrStep=new JComboBox();
+    chAggrStep.addActionListener(this);
+    chAggrStep.addItem(new Integer(1));
+    chAggrStep.addItem(new Integer(5));
+    chAggrStep.addItem(new Integer(10));
+    chAggrStep.addItem(new Integer(15));
+    chAggrStep.addItem(new Integer(20));
+    chAggrStep.addItem(new Integer(30));
+    chAggrStep.addItem(new Integer(60));
+    JPanel pp=new JPanel(new FlowLayout(FlowLayout.CENTER,1,5));
+    pp.add(new Label("Aggregation time step:"));
+    pp.add(chAggrStep);
+    pp.add(new Label("minutes"));
+    p.add(pp);
+    
     canvas=new SectorShowCanvas(sectors);
     canvas.setFocusSector(sortedSectors.get(maxIdx).sectorId);
     canvas.addActionListener(this);
+    chAggrStep.setSelectedItem(Integer.toString(canvas.getAggregationTimeStep()));
   
     flInfoPanel=new SelectedFlightsInfoShow(sectors);
     flInfoPanel.addActionListener(this);
@@ -100,6 +120,11 @@ public class SectorShowPanel extends JPanel  implements ActionListener {
         if (sIdx!=chSectors.getSelectedIndex())
           chSectors.setSelectedIndex(sIdx);
       }
+    }
+    else
+    if (ae.getSource().equals(chAggrStep)) {
+      if (canvas!=null)
+        canvas.setAggregationTimeStep((Integer)chAggrStep.getSelectedItem());
     }
     else
     if (ae.getSource().equals(chSectors) && canvas!=null) {

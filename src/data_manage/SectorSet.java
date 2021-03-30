@@ -122,4 +122,34 @@ public class SectorSet {
       return null;
     return flights.get(flightId);
   }
+  /**
+   * Gets sector capacities from the given data store
+   */
+  public boolean getSectorCapacities(DataStore capData) {
+    if (capData==null || !capData.hasData())
+      return false;
+    int sAIdx=capData.getAttrIndex("sector"),
+        cAIdx=capData.getAttrIndex("capacity");
+    int nGot=0;
+    if (sAIdx<0 || cAIdx<0)
+      System.out.println("No expected field names \"sector\" and \"capacity\" in the data!");
+    else
+      for (int i=0; i<capData.data.size(); i++) {
+        Object rec[]=capData.data.get(i);
+        if (sAIdx<rec.length && cAIdx<rec.length && rec[sAIdx]!=null && rec[cAIdx]!=null) {
+          String sectorId=rec[sAIdx].toString();
+          int cap=(rec[cAIdx] instanceof Integer)?(Integer)rec[cAIdx]:
+                      (rec[cAIdx] instanceof Double)?((Double)rec[cAIdx]).intValue():0;
+          if (cap>0) {
+            OneSectorData sector=getSectorData(sectorId);
+            if (sector!=null) {
+              sector.capacity = cap;
+              ++nGot;
+            }
+          }
+        }
+      }
+    System.out.println("Got capacities of "+nGot+" sectors!");
+    return nGot>0;
+  }
 }

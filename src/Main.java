@@ -10,7 +10,7 @@ import java.util.ArrayList;
 public class Main {
 
     public static void main(String[] args) {
-      String fileNameBaseline=null, fileNameSolution=null;
+      String fileNameBaseline=null, fileNameSolution=null, fileNameCapacities=null;
       try {
         BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(new File("params.txt")))) ;
         String strLine;
@@ -24,8 +24,11 @@ public class Main {
             if (parName.equals("data_baseline"))
               fileNameBaseline=tokens[1].trim();
             else
-              if (parName.equals("data_solution"))
-                fileNameSolution=tokens[1].trim();
+            if (parName.equals("data_solution"))
+              fileNameSolution=tokens[1].trim();
+            else
+            if (parName.equals("sector_capacities"))
+              fileNameCapacities=tokens[1].trim();
           }
         } catch (IOException io) {
           System.out.println(io);
@@ -58,6 +61,16 @@ public class Main {
         return;
       }
       System.out.println("Got data about "+sortedSectors.size()+" sectors!");
+      if (fileNameCapacities!=null) {
+        System.out.println("Reading file with sector capacities...");
+        DataStore capData=new DataStore();
+        if (!capData.readData(fileNameCapacities))
+          System.out.println("Failed to get capacity data!");
+        else {
+          System.out.println("Got "+capData.data.size()+" data records; trying to get capacities...");
+          sectors.getSectorCapacities(capData);
+        }
+      }
       /*
       for (int i=0; i<sortedSectors.size(); i++) {
         OneSectorData s=sortedSectors.get(i);

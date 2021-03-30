@@ -10,7 +10,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 
 public class SectorShowCanvas extends JPanel implements MouseListener, MouseMotionListener {
-  public static final int secondsinDay=86400;
+  public static final int secondsinDay=86400, minutesInDay=1440;
   
   public static Color
       focusSectorColor=Color.red.darker(),
@@ -19,10 +19,22 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       fromSectorBkgColor=new Color(0,128,128,30),
       toSectorColor=Color.blue.darker(),
       toSectorBkgColor=new Color(0,0,128,30);
+  
+  public static Color
+      flightCountColor=new Color(0, 0, 0, 40),
+      highFlightCountColor=new Color(90, 0, 0, 60),
+      entryCountColor=new Color(255, 255, 255, 40),
+      highEntryCountColor=new Color(255, 128, 128, 60),
+      capacityColor=new Color(128, 0, 0, 128);
+  
   /**
    * Information about all sectors
    */
   public SectorSet sectors=null;
+  /**
+   * Time step, in minutes, for aggregating flights in sectors
+   */
+  public int tStepAggregates=1;
   /**
    * The sector that is now in focus
    */
@@ -150,11 +162,27 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     return ids;
   }
   
+  public int getAggregationTimeStep() {
+    return tStepAggregates;
+  }
+  
+  public void setAggregationTimeStep(int step) {
+    if (step>0 && step!=tStepAggregates) {
+      tStepAggregates=step;
+      off_Valid=false;
+      redraw();
+    }
+  }
+  
   public int getXPos(LocalTime t, int width) {
     if (t==null)
       return -1;
     int tSinceMidnight=t.getHour()*3600+t.getMinute()*60+t.getSecond();
     return Math.round(((float)width)*tSinceMidnight/secondsinDay);
+  }
+  
+  public int getXPos(int minute, int width) {
+    return Math.round(((float)width)*minute/minutesInDay);
   }
   
   public void paintComponent(Graphics gr) {
@@ -173,6 +201,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
         return;
       }
     }
+    selection_Valid=false;
     
     if (off_Image==null || off_Image.getWidth()!=w || off_Image.getHeight()!=h)
       off_Image=new BufferedImage(w,h,BufferedImage.TYPE_INT_ARGB);
@@ -297,11 +326,81 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     }
     for (int i=0; i<flightDrawers.length; i++)
       flightDrawers[i].draw(g);
+  
+    showSectorVisitAggregates(g);
+
     off_Valid=true;
     //gr.drawImage(off_Image,0,0,null);
     drawSelected(gr);
     if (hlIdx>=0)
       flightDrawers[hlIdx].drawHighlighted(getGraphics());
+  }
+  
+  protected void showSectorVisitAggregates(Graphics g) {
+    if (sInFocus==null)
+      return;
+    int w=getWidth();
+
+    showSectorVisitAggregates(g,sInFocus.sectorId,yMarg+hFrom,hFocus,w);
+
+    int nFrom=(fromSorted==null)?0:fromSorted.size(),
+        nTo=(toSorted==null)?0:toSorted.size();
+    
+    for (int i=0; i<nFrom; i++) {
+      OneSectorData s=fromSorted.get(nFrom-i-1);
+      int y=yMarg+i*(hOther+vSpace);
+      showSectorVisitAggregates(g,s.sectorId,y,hOther,w);
+    }
+  
+    for (int i=0; i<nTo; i++) {
+      OneSectorData s=toSorted.get(i);
+      int y=yMarg+hFrom+hFocus+vSpace+i*(hOther+vSpace);
+      showSectorVisitAggregates(g,s.sectorId,y,hOther,w);
+    }
+  }
+  
+  protected void showSectorVisitAggregates(Graphics g, String sectorId, int y0, int fullH, int fullW) {
+    if (sectors==null || sectorId==null)
+      return;
+    OneSectorData s=sectors.getSectorData(sectorId);
+    if (s==null)
+      return;
+    int fCounts[]=s.getHourlyFlightCounts(tStepAggregates);
+    if (fCounts==null)
+      return;
+    int eCounts[]=s.getHourlyEntryCounts(tStepAggregates);
+    int max=0;
+    for (int j=0; j<fCounts.length; j++)
+      if (max<fCounts[j])
+        max=fCounts[j];
+    if (max<=0) return;
+    max=Math.max(max,s.capacity);
+    
+    int maxBH=fullH-2;
+    for (int j = 0; j < fCounts.length; j++)
+      if (fCounts[j] > 0) {
+        int t=j*tStepAggregates;
+        int x1 = getXPos(t, tWidth), x2 = getXPos(t +tStepAggregates, tWidth);
+        int bh = Math.round(((float) fCounts[j]) / max * maxBH);
+        if (s.capacity > 0 && fCounts[j] > s.capacity)
+          g.setColor(highFlightCountColor);
+        else
+          g.setColor(flightCountColor);
+        g.fillRect(x1, y0 + fullH -1 - bh, x2 - x1 + 1, bh);
+        if (eCounts[j]>0) {
+          bh=Math.round(((float) eCounts[j]) / max * maxBH);
+          if (s.capacity > 0 && eCounts[j] > s.capacity)
+            g.setColor(highEntryCountColor);
+          else
+            g.setColor(entryCountColor);
+          g.fillRect(x1, y0 + fullH -1 - bh, x2 - x1 + 1, bh);
+        }
+      }
+    if (s.capacity<max) {
+      g.setColor(capacityColor);
+      int cy=y0+fullH-Math.round(((float) s.capacity) / max * maxBH);
+      g.drawLine(0,cy,fullW,cy);
+    }
   }
   
   protected int getDrawnObjIndex(String objId) {
@@ -506,7 +605,8 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     if (is[0]==0)
       return "<html><body style=background-color:rgb(255,255,204)>"+
                  "Sector "+sInFocus.sectorId+": "+sInFocus.getNFlights()+" flights;<br>"+
-                 "time range = "+sInFocus.tFirst+".."+sInFocus.tLast+
+                 "time range = "+sInFocus.tFirst+".."+sInFocus.tLast+"<br>"+
+                 "capacity = "+sInFocus.capacity+" flights per hour"+
                  "</body></html>";
     OneSectorData s=(is[0]<0)?fromSorted.get(is[1]):toSorted.get(is[1]),
       sAll=sectors.getSectorData(s.sectorId);
@@ -515,7 +615,8 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
                (is[0]<0)?"go to":"come from")+" sector "+sInFocus.sectorId+";<br>"+
                "time range = "+s.tFirst+".."+s.tLast+";<br>"+
                sAll.getNFlights()+" flights total;<br>" +
-               "overall time range = "+sAll.tFirst+".."+sAll.tLast+
+               "overall time range = "+sAll.tFirst+".."+sAll.tLast+"<br>"+
+               "capacity = "+sAll.capacity+" flights per hour"+
                "</body></html>";
   }
   
