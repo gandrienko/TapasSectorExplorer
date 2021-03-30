@@ -70,6 +70,10 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
    * Identifiers of selected objects
    */
   protected ArrayList<String> selectedObjIds=null;
+  /**
+   * Whether to show only selected flights or all flights
+   */
+  public boolean showOnlySelectedFlights=false;
   
   protected BufferedImage off_Image=null, off_Image_selected=null;
   protected boolean off_Valid=false, selection_Valid=false;
@@ -174,6 +178,14 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     }
   }
   
+  public void setShowOnlySelectedFlights(boolean only) {
+    if (this.showOnlySelectedFlights != only) {
+      this.showOnlySelectedFlights = only;
+      off_Valid = false;
+      redraw();
+    }
+  }
+  
   public int getXPos(LocalTime t, int width) {
     if (t==null)
       return -1;
@@ -195,7 +207,10 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       }
       else {
         //gr.drawImage(off_Image,0,0,null);
-        drawSelected(gr);
+        if (showOnlySelectedFlights)
+          gr.drawImage(off_Image,0,0,null);
+        else
+          drawSelected(gr);
         if (hlIdx>=0)
           flightDrawers[hlIdx].drawHighlighted(getGraphics());
         return;
@@ -288,6 +303,12 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     y=yMarg+hFrom;
     for (int i=0; i<sInFocus.sortedFlights.size(); i++) {
       FlightInSector f=sInFocus.sortedFlights.get(i);
+      if (showOnlySelectedFlights && (selectedObjIds==null || !selectedObjIds.contains(f.flightId))) {
+        flightDrawers[i].setXYFocus(-1,-1,-1,-1);
+        flightDrawers[i].setNoPrevious();
+        flightDrawers[i].setNoNext();
+        continue;
+      }
       int x1=getXPos(f.entryTime,tWidth)+tMarg, x2=getXPos(f.exitTime,tWidth)+tMarg;
       flightDrawers[i].setXYFocus(x1,x2,y,y+hFocus);
       flightDrawers[i].setNoPrevious();
@@ -330,8 +351,10 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     showSectorVisitAggregates(g);
 
     off_Valid=true;
-    //gr.drawImage(off_Image,0,0,null);
-    drawSelected(gr);
+    if (showOnlySelectedFlights)
+      gr.drawImage(off_Image,0,0,null);
+    else
+      drawSelected(gr);
     if (hlIdx>=0)
       flightDrawers[hlIdx].drawHighlighted(getGraphics());
   }

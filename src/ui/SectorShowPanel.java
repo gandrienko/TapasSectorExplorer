@@ -7,9 +7,11 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.util.ArrayList;
 
-public class SectorShowPanel extends JPanel  implements ActionListener {
+public class SectorShowPanel extends JPanel  implements ActionListener, ItemListener {
   /**
    * Information about all sectors
    */
@@ -42,6 +44,10 @@ public class SectorShowPanel extends JPanel  implements ActionListener {
    * Used for setting the aggregation time step
    */
   protected JComboBox chAggrStep=null;
+  /**
+   * Used for switching between showing all flights and only selected ones
+   */
+  protected JCheckBox cbShowOnlySelected=null;
   
   public SectorShowPanel(SectorSet sectors) {
     super();
@@ -89,6 +95,10 @@ public class SectorShowPanel extends JPanel  implements ActionListener {
     pp.add(chAggrStep);
     pp.add(new Label("minutes"));
     p.add(pp);
+    
+    cbShowOnlySelected=new JCheckBox("Show only selected flights",false);
+    cbShowOnlySelected.addItemListener(this);
+    p.add(cbShowOnlySelected);
     
     canvas=new SectorShowCanvas(sectors);
     canvas.setFocusSector(sortedSectors.get(maxIdx).sectorId);
@@ -169,6 +179,12 @@ public class SectorShowPanel extends JPanel  implements ActionListener {
         if (sIdx>=0 && sIdx!=chSectors.getSelectedIndex())
           chSectors.setSelectedIndex(sIdx);
       }
+    }
+  }
+  public void itemStateChanged(ItemEvent e) {
+    if (e.getSource().equals(cbShowOnlySelected)) {
+      if (canvas!=null)
+        canvas.setShowOnlySelectedFlights(cbShowOnlySelected.isSelected());
     }
   }
 }
