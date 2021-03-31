@@ -4,6 +4,8 @@ import data_manage.OneSectorData;
 import data_manage.SectorSet;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -11,7 +13,8 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.util.ArrayList;
 
-public class SectorShowPanel extends JPanel  implements ActionListener, ItemListener {
+public class SectorShowPanel extends JPanel
+    implements ActionListener, ItemListener, ChangeListener {
   /**
    * Information about all sectors
    */
@@ -48,6 +51,9 @@ public class SectorShowPanel extends JPanel  implements ActionListener, ItemList
    * Used for switching between showing all flights and only selected ones
    */
   protected JCheckBox cbShowOnlySelected=null;
+  
+  protected RangeSlider timeFocuser=null;
+  protected JTextField tfTStart=null, tfTEnd=null;
   
   public SectorShowPanel(SectorSet sectors) {
     super();
@@ -90,15 +96,33 @@ public class SectorShowPanel extends JPanel  implements ActionListener, ItemList
     chAggrStep.addItem(new Integer(20));
     chAggrStep.addItem(new Integer(30));
     chAggrStep.addItem(new Integer(60));
-    JPanel pp=new JPanel(new FlowLayout(FlowLayout.CENTER,1,5));
-    pp.add(new Label("Aggregation time step:"));
+    JPanel pp=new JPanel(new FlowLayout(FlowLayout.CENTER,5,5));
+    pp.add(new JLabel("Aggregation time step:"));
     pp.add(chAggrStep);
-    pp.add(new Label("minutes"));
+    pp.add(new JLabel("minutes"));
     p.add(pp);
     
     cbShowOnlySelected=new JCheckBox("Show only selected flights",false);
     cbShowOnlySelected.addItemListener(this);
     p.add(cbShowOnlySelected);
+    
+    timeFocuser=new RangeSlider();
+    timeFocuser.setPreferredSize(new Dimension(240,timeFocuser.getPreferredSize().height));
+    timeFocuser.setMinimum(0);
+    timeFocuser.setMaximum(SectorShowCanvas.minutesInDay);
+    timeFocuser.setValue(0);
+    timeFocuser.setUpperValue(SectorShowCanvas.minutesInDay);
+    timeFocuser.addChangeListener(this);
+    tfTStart=new JTextField("00:00");
+    tfTEnd=new JTextField("24:00");
+    tfTStart.addActionListener(this);
+    tfTEnd.addActionListener(this);
+    pp=new JPanel(new FlowLayout(FlowLayout.CENTER,5,5));
+    p.add(pp);
+    pp.add(new JLabel("Show time interval:"));
+    pp.add(tfTStart);
+    pp.add(timeFocuser);
+    pp.add(tfTEnd);
     
     canvas=new SectorShowCanvas(sectors);
     canvas.setFocusSector(sortedSectors.get(maxIdx).sectorId);
@@ -180,6 +204,39 @@ public class SectorShowPanel extends JPanel  implements ActionListener, ItemList
           chSectors.setSelectedIndex(sIdx);
       }
     }
+    else
+    if (ae.getSource() instanceof JTextField)  {
+      JTextField tf=(JTextField)ae.getSource();
+      if (tf.equals(tfTStart) || tf.equals(tfTEnd)) {
+        String txt=tf.getText();
+        int idx=txt.indexOf(':');
+        int h=-1, m=-1;
+        try {
+          h=Integer.parseInt((idx<0)?txt:txt.substring(0,idx));
+        } catch (Exception ex) {}
+        if (h>=0 && idx>0)
+          try {
+            m=Integer.parseInt(txt.substring(idx+1));
+          } catch (Exception ex) {}
+        if (h<0 || m<0 || h>24 || m>59) {
+          int val=(tf.equals(tfTStart))?timeFocuser.getValue():timeFocuser.getUpperValue();
+          tf.setText(String.format("%02d:%02d",val/60,val%60));
+        }
+        else {
+          m+=h*60;
+          boolean ok=(tf.equals(tfTStart))?m<timeFocuser.getUpperValue():m>timeFocuser.getValue();
+          if (!ok) {
+            int val=(tf.equals(tfTStart))?timeFocuser.getValue():timeFocuser.getUpperValue();
+            tf.setText(String.format("%02d:%02d",val/60,val%60));
+          }
+          else
+            if (tf.equals(tfTStart))
+              timeFocuser.setValue(m);
+            else
+              timeFocuser.setUpperValue(m);
+        }
+      }
+    }
   }
   public void itemStateChanged(ItemEvent e) {
     if (e.getSource().equals(cbShowOnlySelected)) {
@@ -187,4 +244,43 @@ public class SectorShowPanel extends JPanel  implements ActionListener, ItemList
         canvas.setShowOnlySelectedFlights(cbShowOnlySelected.isSelected());
     }
   }
+  
+  public void stateChanged(ChangeEvent e) {
+    if (e.getSource().equals(timeFocuser))
+      getTimeRange();
+  }
+  
+  protected void getTimeRange() {
+    int m1=timeFocuser.getValue(), m2=timeFocuser.getUpperValue();
+    if (m2-m1<60) {
+      if (canvas!=null)
+        if (m1==canvas.getMinuteStart()) {
+          m2=m1+60;
+          if (m2>SectorShowCanvas.minutesInDay) {
+            m2=SectorShowCanvas.minutesInDay;
+            m1=m2-60;
+          }
+        }
+        else {
+          m1=m2-60;
+          if (m1<0) {
+            m1=0; m2=60;
+          }
+        }
+      else {
+        m2=m1+60;
+        if (m2>SectorShowCanvas.minutesInDay) {
+          m2=SectorShowCanvas.minutesInDay;
+          m1=m2-60;
+        }
+      }
+      timeFocuser.setValue(m1);
+      timeFocuser.setUpperValue(m2);
+    }
+    tfTStart.setText(String.format("%02d:%02d",m1/60,m1%60));
+    tfTEnd.setText(String.format("%02d:%02d",m2/60,m2%60));
+    if (canvas!=null)
+      canvas.setTimeRange(m1,m2);
+  }
+  
 }

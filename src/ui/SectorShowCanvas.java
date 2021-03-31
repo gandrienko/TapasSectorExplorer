@@ -74,7 +74,13 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
    * Whether to show only selected flights or all flights
    */
   public boolean showOnlySelectedFlights=false;
-  
+  /**
+   * Time range to show (minutes of the day)
+   */
+  public int minuteStart=0, minuteEnd=minutesInDay;
+  /**
+   * Used to speed up redrawing
+   */
   protected BufferedImage off_Image=null, off_Image_selected=null;
   protected boolean off_Valid=false, selection_Valid=false;
   
@@ -186,6 +192,21 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       off_Valid = false;
       redraw();
     }
+  }
+  
+  public void setTimeRange(int minute1, int minute2) {
+    if (minute1!=minuteStart || minute2!=minuteEnd) {
+      minuteStart=minute1; minuteEnd=minute2;
+      //off_Valid = false;
+      //redraw();
+    }
+  }
+  
+  public int getMinuteStart() {
+    return minuteStart;
+  }
+  public int getMinuteEnd() {
+    return minuteEnd;
   }
   
   public int getXPos(LocalTime t, int width) {
