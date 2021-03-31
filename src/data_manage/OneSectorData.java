@@ -67,6 +67,36 @@ public class OneSectorData {
       return 0;
     return sortedFlights.size();
   }
+  
+  /**
+   * @param binWidth - always in minutes
+   */
+  public int getMinuteOfDayBinIndex(int minuteOfDay, int binWidth){
+    if (minuteOfDay<0 || binWidth<=0)
+      return -1;
+    return minuteOfDay/binWidth;
+  }
+  
+  public int getTimeBinIndex(LocalTime t, int binWidth) {
+    if (t==null || binWidth<=0)
+      return -1;
+    return getMinuteOfDayBinIndex(t.getHour()*60+t.getMinute(),binWidth);
+  }
+  
+  public LocalTime[] getTimeBinRange(int binIdx, int binWidth) {
+    if (binWidth<=0)
+      return null;
+    LocalTime tt[]=new LocalTime[2];
+    int m=binIdx*binWidth;
+    tt[0]=LocalTime.of((m/60)%24,m%60,0);
+    m+=59;
+    tt[1]=LocalTime.of((m/60)%24,m%60,59);
+    return tt;
+  }
+  
+  public int getAggregationTimeStep(){
+    return tStepFlightCounts;
+  }
   /**
    * Computes hourly flight counts with the given time step, in minutes
    */
@@ -89,8 +119,9 @@ public class OneSectorData {
         int m1=f.entryTime.getHour()*60+f.entryTime.getMinute(),
             m2=f.exitTime.getHour()*60+f.exitTime.getMinute()+60;
         int idx1=m1/tStep, idx2=m2/tStep;
-        for (int j=idx1; j<=idx2 && j<counts.length; j++)
-          ++counts[j];
+        if (idx1>=0 && idx2>=0)
+          for (int j=idx1; j<=idx2 && j<counts.length; j++)
+            ++counts[j];
       }
     flightCounts=counts;
     tStepFlightCounts =tStep;

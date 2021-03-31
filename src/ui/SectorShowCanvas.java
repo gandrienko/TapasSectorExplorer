@@ -10,7 +10,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 
 public class SectorShowCanvas extends JPanel implements MouseListener, MouseMotionListener {
-  public static final int secondsinDay=86400, minutesInDay=1440;
+  public static final int secondsInDay =86400, minutesInDay=1440;
   
   public static Color
       focusSectorColor=Color.red.darker(),
@@ -113,26 +113,28 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
           if (s!=null)
             ff=s.getFlightData(f.flightId,f.entryTime,null);
           if (ff!=null) {
-            s = fromSectors.getSectorData(ff.sectorId);
-            if (s == null) {
-              s = new OneSectorData();
-              s.sectorId = ff.sectorId;
-              fromSectors.addSector(s);
+            OneSectorData sFrom = fromSectors.getSectorData(ff.sectorId);
+            if (sFrom == null) {
+              sFrom = new OneSectorData();
+              sFrom.sectorId = ff.sectorId;
+              sFrom.capacity=s.capacity;
+              fromSectors.addSector(sFrom);
             }
-            s.addFlight(ff);
+            sFrom.addFlight(ff);
           }
           ff=null;
           s=sectors.getSectorData(f.nextSectorId);
           if (s!=null)
             ff=s.getFlightData(f.flightId,null,f.exitTime);
           if (ff!=null) {
-            s = toSectors.getSectorData(ff.sectorId);
-            if (s == null) {
-              s = new OneSectorData();
-              s.sectorId = ff.sectorId;
-              toSectors.addSector(s);
+            OneSectorData sTo = toSectors.getSectorData(ff.sectorId);
+            if (sTo == null) {
+              sTo = new OneSectorData();
+              sTo.sectorId = ff.sectorId;
+              sTo.capacity=s.capacity;
+              toSectors.addSector(sTo);
             }
-            s.addFlight(ff);
+            sTo.addFlight(ff);
           }
         }
       }
@@ -190,11 +192,27 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     if (t==null)
       return -1;
     int tSinceMidnight=t.getHour()*3600+t.getMinute()*60+t.getSecond();
-    return Math.round(((float)width)*tSinceMidnight/secondsinDay);
+    return Math.round(((float)width)*tSinceMidnight/ secondsInDay);
   }
   
   public int getXPos(int minute, int width) {
     return Math.round(((float)width)*minute/minutesInDay);
+  }
+  
+  public int getMinuteOfDayForXPos(int xPos, int width) {
+    if (xPos<0)
+      return -1;
+    return Math.round((float)xPos/width*minutesInDay);
+  }
+  
+  public LocalTime getTimeForXPos(int xPos, int width) {
+    if (xPos<0)
+      return null;
+    int secOfDay=Math.round((float)xPos/width*secondsInDay);
+    int h=secOfDay/3600, mm=secOfDay%3600, m=mm/60, s=mm%60;
+    if (h>23)
+      return LocalTime.of(0,0,0);
+    return LocalTime.of(h,m,s);
   }
   
   public void paintComponent(Graphics gr) {
@@ -403,7 +421,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     for (int j = 0; j < fCounts.length; j++)
       if (fCounts[j] > 0) {
         int t=j*tStepAggregates;
-        int x1 = getXPos(t, tWidth), x2 = getXPos(t +tStepAggregates, tWidth);
+        int x1 = tMarg+getXPos(t, tWidth), x2 = tMarg+getXPos(t +tStepAggregates, tWidth);
         int bh = Math.round(((float) fCounts[j]) / max * maxBH);
         if (s.capacity > 0 && fCounts[j] > s.capacity)
           g.setColor(highFlightCountColor);
@@ -625,22 +643,54 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     int is[]=getSectorIdx(me.getY());
     if (is==null || is[1]<0)
       return null;
+    OneSectorData s=(is[0]<0)?fromSorted.get(is[1]):(is[0]>0)?toSorted.get(is[1]):sInFocus;
+    OneSectorData sFull=(is[0]==0)?sInFocus:sectors.getSectorData(s.sectorId);
+    
+    LocalTime tAtPos=getTimeForXPos(me.getX()-tMarg,tWidth);
+    String txt="<html><body style=background-color:rgb(255,255,204)>"+
+                   "Time = "+tAtPos+"<br>"+
+                   "Sector "+s.sectorId+":<br>";
+    
     if (is[0]==0)
-      return "<html><body style=background-color:rgb(255,255,204)>"+
-                 "Sector "+sInFocus.sectorId+": "+sInFocus.getNFlights()+" flights;<br>"+
-                 "time range = "+sInFocus.tFirst+".."+sInFocus.tLast+"<br>"+
-                 "capacity = "+sInFocus.capacity+" flights per hour"+
-                 "</body></html>";
-    OneSectorData s=(is[0]<0)?fromSorted.get(is[1]):toSorted.get(is[1]),
-      sAll=sectors.getSectorData(s.sectorId);
-    return "<html><body style=background-color:rgb(255,255,204)>"+
-               "Sector "+s.sectorId+":<br>"+s.getNFlights()+" flights "+(
-               (is[0]<0)?"go to":"come from")+" sector "+sInFocus.sectorId+";<br>"+
-               "time range = "+s.tFirst+".."+s.tLast+";<br>"+
-               sAll.getNFlights()+" flights total;<br>" +
-               "overall time range = "+sAll.tFirst+".."+sAll.tLast+"<br>"+
-               "capacity = "+sAll.capacity+" flights per hour"+
-               "</body></html>";
+      txt+=s.getNFlights()+" flights "+
+                "during time range "+s.tFirst+".."+s.tLast+"<br>";
+    else
+      txt+=s.getNFlights()+" flights "+((is[0]<0)?"go to":"come from")+
+               " sector "+sInFocus.sectorId+"<br>during "+
+               "time range "+s.tFirst+".."+s.tLast+";<br>"+
+               sFull.getNFlights()+" flights crossed this sector in total<br>" +
+               "during time range "+sFull.tFirst+".."+sFull.tLast+"<br>";
+    txt+="capacity = "+sFull.capacity+" flights per hour";
+    
+    int tStep=sFull.getAggregationTimeStep();
+    int counts[]=sFull.getHourlyFlightCounts(tStep);
+    if (counts!=null) {
+      int idx=sFull.getTimeBinIndex(tAtPos,tStep);
+      if (idx>=0 && idx<counts.length) {
+        LocalTime tt[]=sFull.getTimeBinRange(idx,tStep);
+        if (tt!=null) {
+          txt += "<br>time bin: "+tt[0]+".."+tt[1]+" (#"+idx+")"+
+                     "<br>Hourly occupancy: " + counts[idx];
+          if (counts[idx]>sFull.capacity) {
+            int diff=counts[idx]-sFull.capacity;
+            float percent=100f*diff/sFull.capacity;
+            txt+="; excess of capacity: "+diff+" flights ("+String.format("%.2f", percent)+"%)";
+          }
+          counts=sFull.getHourlyEntryCounts(tStep);
+          if (counts!=null) {
+            txt+="<br>Hourly entries: " + counts[idx];
+            if (counts[idx]>sFull.capacity) {
+              int diff=counts[idx]-sFull.capacity;
+              float percent=100f*diff/sFull.capacity;
+              txt+="; excess of capacity: "+diff+" entries ("+String.format("%.2f", percent)+"%)";
+            }
+          }
+        }
+      }
+    }
+    
+    txt+="</body></html>";
+    return txt;
   }
   
   //---------------------- MouseListener ----------------------------------------
