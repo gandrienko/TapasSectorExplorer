@@ -31,11 +31,15 @@ class RangeSliderUI extends BasicSliderUI {
   private Rectangle upperThumbRect;
   /** Indicator that determines whether upper thumb is selected. */
   private boolean upperThumbSelected;
+  /** Indicator that determines that the track between the thumbs ia selected */
+  private boolean trackSelected;
   
   /** Indicator that determines whether lower thumb is being dragged. */
   private transient boolean lowerDragging;
   /** Indicator that determines whether upper thumb is being dragged. */
   private transient boolean upperDragging;
+  /** Indicator that determines whether the track between the thumbs is being dragged. */
+  private transient boolean trackDragging;
   
   /**
    * Constructs a RangeSliderUI for the specified slider component.
@@ -377,6 +381,7 @@ class RangeSliderUI extends BasicSliderUI {
    * Listener to handle mouse movements in the slider track.
    */
   public class RangeTrackListener extends TrackListener {
+    private int valueWhenPressed =Integer.MIN_VALUE;
     
     @Override
     public void mousePressed(MouseEvent e) {
@@ -387,6 +392,10 @@ class RangeSliderUI extends BasicSliderUI {
       currentMouseX = e.getX();
       currentMouseY = e.getY();
       
+      valueWhenPressed =(slider.getOrientation()==JSlider.VERTICAL)?
+                            valueForYPosition(currentMouseY):
+                            valueForXPosition(currentMouseX);
+      
       if (slider.isRequestFocusEnabled()) {
         slider.requestFocus();
       }
@@ -396,6 +405,7 @@ class RangeSliderUI extends BasicSliderUI {
       // otherwise check the position of the lower thumb first.
       boolean lowerPressed = false;
       boolean upperPressed = false;
+      boolean betweenPressed = false;
       if (upperThumbSelected || slider.getMinimum() == slider.getValue()) {
         if (upperThumbRect.contains(currentMouseX, currentMouseY)) {
           upperPressed = true;
@@ -408,6 +418,16 @@ class RangeSliderUI extends BasicSliderUI {
         } else if (upperThumbRect.contains(currentMouseX, currentMouseY)) {
           upperPressed = true;
         }
+      }
+      
+      if (!lowerPressed && !upperPressed) {
+        //perhaps, the mouse is in between
+        int x1=Math.min(thumbRect.x,upperThumbRect.x),
+            x2=Math.max(thumbRect.x+thumbRect.width,upperThumbRect.x+upperThumbRect.width),
+            y1=Math.min(thumbRect.y,upperThumbRect.y),
+            y2=Math.max(thumbRect.y+thumbRect.height,upperThumbRect.y+upperThumbRect.height);
+        betweenPressed=currentMouseX>=x1 && currentMouseX<=x2 && currentMouseY>=y1 && currentMouseY<=y2;
+        //System.out.println("between!");
       }
       
       // Handle lower thumb pressed.
@@ -441,12 +461,29 @@ class RangeSliderUI extends BasicSliderUI {
         return;
       }
       upperDragging = false;
+      
+      // Handle inter-thumb track pressed
+      if (betweenPressed) {
+        switch (slider.getOrientation()) {
+          case JSlider.VERTICAL:
+            offset = currentMouseY - thumbRect.y;
+            break;
+          case JSlider.HORIZONTAL:
+            offset = currentMouseX - thumbRect.x;
+            break;
+        }
+        trackSelected=true;
+        trackDragging=true;
+        return;
+      }
+      trackDragging=false;
     }
     
     @Override
     public void mouseReleased(MouseEvent e) {
       lowerDragging = false;
       upperDragging = false;
+      trackDragging =false;
       slider.setValueIsAdjusting(false);
       super.mouseReleased(e);
     }
@@ -467,6 +504,9 @@ class RangeSliderUI extends BasicSliderUI {
       } else if (upperDragging) {
         slider.setValueIsAdjusting(true);
         moveUpperThumb();
+      } else if (trackDragging) {
+        slider.setValueIsAdjusting(true);
+        moveInterval();
       }
     }
     
@@ -592,5 +632,54 @@ class RangeSliderUI extends BasicSliderUI {
           return;
       }
     }
+    /**
+     * Moves both thumbs and the interval between them
+     */
+    private void moveInterval () {
+      int extent=slider.getExtent();
+      int currValue=(slider.getOrientation()==JSlider.VERTICAL)?
+                        valueForYPosition(currentMouseY):
+                        valueForXPosition(currentMouseX);
+      int delta=currValue-valueWhenPressed;
+      if (delta==0)
+        return;
+      if (delta>0 && slider.getValue()+extent+delta>slider.getMaximum())
+        delta=slider.getMaximum()-extent-slider.getValue();
+      else
+      if (delta<0 && slider.getValue()+delta<slider.getMinimum())
+        delta=slider.getMinimum()-slider.getValue();
+      if (delta==0)
+        return;
+      int vLow=slider.getValue()+delta, vHigh=vLow+extent;
+      valueWhenPressed+=delta;
+      
+      switch (slider.getOrientation()) {
+        case JSlider.VERTICAL:
+          int yLow=yPositionForValue(vLow), yHigh=yPositionForValue(vHigh);
+          int halfThumbHeight = thumbRect.height / 2;
+          
+          setThumbLocation(thumbRect.x, yLow-halfThumbHeight);
+          setUpperThumbLocation(thumbRect.x,yHigh-halfThumbHeight);
+          slider.setValue(vLow);
+          slider.setExtent(extent);
+          break;
+      
+        case JSlider.HORIZONTAL:
+          int xLow=xPositionForValue(vLow), xHigh=xPositionForValue(vHigh);
+          int halfThumbWidth = thumbRect.width / 2;
+        
+          setThumbLocation(xLow-halfThumbWidth, thumbRect.y);
+          setUpperThumbLocation(xHigh-halfThumbWidth, thumbRect.y);
+
+          slider.setValue(vLow);
+          slider.setExtent(extent);
+          break;
+      
+        default:
+          return;
+      }
+    }
+
   }
+  
 }

@@ -55,7 +55,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
   /**
    * Used for drawing and calculating positions for times
    */
-  protected int tMarg=10, tWidth=0, tStep=0;
+  protected int tMarg=10, tWidth=0;
   protected int yMarg=0, plotH=0;
   protected int hFocus=0, hOther=0, vSpace=0, hFrom=0, hTo=0;
   /**
@@ -78,6 +78,10 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
    * Time range to show (minutes of the day)
    */
   public int minuteStart=0, minuteEnd=minutesInDay;
+  /**
+   * Time range length in minutes and in seconds
+   */
+  public int tLengthMinutes =minutesInDay, tLengthSeconds=tLengthMinutes*60;
   /**
    * Used to speed up redrawing
    */
@@ -195,10 +199,13 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
   }
   
   public void setTimeRange(int minute1, int minute2) {
-    if (minute1!=minuteStart || minute2!=minuteEnd) {
+    if ((minute1!=minuteStart || minute2!=minuteEnd) && minute2-minute1>=60) {
       minuteStart=minute1; minuteEnd=minute2;
-      //off_Valid = false;
+      tLengthMinutes =minuteEnd-minuteStart;
+      tLengthSeconds=tLengthMinutes*60;
+      off_Valid = false;
       //redraw();
+      repaint();
     }
   }
   
@@ -212,24 +219,30 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
   public int getXPos(LocalTime t, int width) {
     if (t==null)
       return -1;
-    int tSinceMidnight=t.getHour()*3600+t.getMinute()*60+t.getSecond();
-    return Math.round(((float)width)*tSinceMidnight/ secondsInDay);
+    //int tSinceMidnight=t.getHour()*3600+t.getMinute()*60+t.getSecond();
+    //return Math.round(((float)width)*tSinceMidnight/ secondsInDay);
+    if (t.getSecond()>0) {
+      int tSinceStart = (t.getHour() * 60 + t.getMinute() - minuteStart) * 60 + t.getSecond();
+      return Math.round(((float) width) * tSinceStart / tLengthSeconds);
+    }
+    int tSinceStart = t.getHour() * 60 + t.getMinute() - minuteStart;
+    return Math.round(((float) width) * tSinceStart / tLengthMinutes);
   }
   
   public int getXPos(int minute, int width) {
-    return Math.round(((float)width)*minute/minutesInDay);
+    return Math.round(((float)width)*(minute-minuteStart)/tLengthMinutes);
   }
   
   public int getMinuteOfDayForXPos(int xPos, int width) {
     if (xPos<0)
       return -1;
-    return Math.round((float)xPos/width*minutesInDay);
+    return Math.round((float)xPos/width*tLengthMinutes)+minuteStart;
   }
   
   public LocalTime getTimeForXPos(int xPos, int width) {
     if (xPos<0)
       return null;
-    int secOfDay=Math.round((float)xPos/width*secondsInDay);
+    int secOfDay=minuteStart*60+Math.round((float)xPos/width*tLengthSeconds);
     int h=secOfDay/3600, mm=secOfDay%3600, m=mm/60, s=mm%60;
     if (h>23)
       return LocalTime.of(0,0,0);
@@ -269,11 +282,12 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     g.fillRect(0,0,w,h);
     
     tWidth=w-2*tMarg;
-    tStep=tWidth/24;
     
     g.setColor(Color.darkGray);
     for (int i=0; i<=24; i++) {
-      int x=tMarg+i*tStep;
+      int x=tMarg+getXPos(i*60,tWidth);
+      if (x<0 || x>w)
+        continue;
       g.drawLine(x,yMarg,x,yMarg+plotH);
       String str=String.format("%02d:00",i);
       int sw=g.getFontMetrics().stringWidth(str);
@@ -727,6 +741,8 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
         if (selectedObjIds!=null && !selectedObjIds.isEmpty()) {
           selectedObjIds.clear();
           selection_Valid=false;
+          if (showOnlySelectedFlights)
+            off_Valid=false;
           redraw();
           sendActionEvent("object_selection");
         }
