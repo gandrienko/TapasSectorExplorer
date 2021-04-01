@@ -31,6 +31,9 @@ public class SelectedFlightsInfoShow extends JPanel
    * Identifiers of currently shown "to" sectors (i.e., visited directly after the focus sector)
    */
   public ArrayList<String> toSectorIds=null;
+  
+  protected JPopupMenu popupMenu =null;
+  protected JCheckBoxMenuItem popupItem =null;
   /**
    * Listeners of selections
    */
@@ -122,6 +125,7 @@ public class SelectedFlightsInfoShow extends JPanel
   
   protected void makeInterior() {
     removeAll();
+    popupMenu=null;
     hlPanel=null;
     if (flCB!=null)
       flCB.clear();
@@ -249,12 +253,64 @@ public class SelectedFlightsInfoShow extends JPanel
       }
     }
   }
-  public void mousePressed(MouseEvent e) {}
+  
+  public void mousePressed(MouseEvent e) {
+    if (e.getButton()>MouseEvent.BUTTON1) { //right button pressed
+      Point p=getMousePosition();
+      if (p!=null) {
+        if (flPanels==null || flPanels.isEmpty())
+          return;
+        int pIdx=-1;
+        for (int i=0; i<flPanels.size() && pIdx<0; i++)
+          if (flPanels.get(i).getBounds().contains(p.x,p.y))
+            pIdx=i;
+        if (pIdx<0) {
+          if (popupMenu !=null)
+            popupMenu.show(this,p.x,p.y);
+          return;
+        }
+        if (popupMenu ==null) {
+          popupMenu = new JPopupMenu();
+          popupMenu.add("Flight " + shownFlIds.get(pIdx));
+          popupItem = new JCheckBoxMenuItem("Show whole path");
+          popupItem.setActionCommand(shownFlIds.get(pIdx));
+          popupItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+              JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
+              if (item.getState())
+                sendActionEvent("show_path:" + e.getActionCommand());
+              else
+                sendActionEvent("cancel_path_show:" + e.getActionCommand());
+            }
+          });
+          popupMenu.add(popupItem);
+        }
+        else {
+          if (!popupItem.getActionCommand().equals(shownFlIds.get(pIdx))) {
+            popupItem.setEnabled(false);
+            popupItem.setState(false);
+            popupItem.setActionCommand(shownFlIds.get(pIdx));
+            popupItem.setEnabled(true);
+            ((JMenuItem) popupMenu.getComponent(0)).setText("Flight " + shownFlIds.get(pIdx));
+          }
+        }
+        popupMenu.show(this,p.x,p.y);
+      }
+    }
+  }
+  
   public void mouseReleased(MouseEvent e) {}
   public void mouseEntered(MouseEvent e) {}
   public void mouseExited(MouseEvent e) {
-    Point p=getMousePosition();
-    if (p==null || !getBounds().contains(p.x,p.y)) {
+    if (e.getSource().equals(this)) {
+      if (flPanels!=null && !flPanels.isEmpty()) {
+        Point p=getMousePosition();
+        if (p!=null)
+          for (int i=0; i<flPanels.size(); i++)
+            if (flPanels.get(i).getBounds().contains(p.x,p.y))
+              return;
+      }
       clearPanelHighlighting();
     }
   }
@@ -276,7 +332,7 @@ public class SelectedFlightsInfoShow extends JPanel
   
   public void mouseMoved(MouseEvent e) {
     Point p=getMousePosition();
-    if (p!=null && getBounds().contains(p.x,p.y)) {
+    if (p!=null) {
       if (flPanels==null || flPanels.isEmpty())
         return;
       int pIdx=-1;

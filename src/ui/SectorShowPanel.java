@@ -203,6 +203,16 @@ public class SectorShowPanel extends JPanel
         if (sIdx>=0 && sIdx!=chSectors.getSelectedIndex())
           chSectors.setSelectedIndex(sIdx);
       }
+      else
+      if (cmd.startsWith("show_path:")) {
+        if (canvas!=null)
+          canvas.setFocusFlight(cmd.substring(10));
+      }
+      else
+      if (cmd.startsWith("cancel_path_show:"))  {
+        if (canvas!=null)
+          canvas.setFocusFlight(null);
+      }
     }
     else
     if (ae.getSource() instanceof JTextField)  {

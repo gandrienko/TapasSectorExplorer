@@ -178,6 +178,16 @@ public class OneSectorData {
     }
   }
   
+  public boolean hasFlight(String flightId) {
+    if (flightId==null || sortedFlights==null || sortedFlights.isEmpty())
+      return false;
+    if (flights==null || flights.isEmpty())
+      makeFlightIndex();
+    if (flights==null || flights.isEmpty())
+      return false;
+    return flights.containsKey(flightId);
+  }
+  
   public FlightInSector getFlightData(String flightId, LocalTime tBefore, LocalTime tAfter) {
     if (flightId==null || sortedFlights==null || sortedFlights.isEmpty())
       return null;

@@ -49,6 +49,11 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
    */
   public ArrayList<OneSectorData> fromSorted=null, toSorted=null;
   /**
+   * The identifier of a flight whose path is currently "in focus", i.e.,
+   * the full path is shown.
+   */
+  public String focusFlightId=null;
+  /**
    * Listeners of selections
    */
   protected ArrayList<ActionListener> listeners=null;
@@ -102,6 +107,104 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     addMouseMotionListener(this);
   }
   
+  protected void getPreviousAndNextSectors() {
+    if (sInFocus==null || sInFocus.sortedFlights==null || sInFocus.sortedFlights.isEmpty())
+      return;
+    if (focusFlightId!=null && !sInFocus.hasFlight(focusFlightId))
+      focusFlightId=null;
+    fromSectors=new SectorSet();
+    toSectors=new SectorSet();
+    if (focusFlightId!=null) {
+      ArrayList<FlightInSector> seq=sectors.getSectorVisitSequence(focusFlightId);
+      if (seq!=null && !seq.isEmpty()) {
+        fromSorted=new ArrayList<OneSectorData>(seq.size()-1);
+        toSorted=new ArrayList<OneSectorData>(seq.size()-1);
+        boolean previous=true;
+        for (int j=0; j<seq.size(); j++) {
+          FlightInSector f = seq.get(j);
+          OneSectorData s=sectors.getSectorData(f.sectorId);
+          if (s.equals(sInFocus)) {
+            previous=false;
+            continue;
+          }
+          OneSectorData ss = new OneSectorData();
+          ss.sectorId = s.sectorId;
+          ss.capacity=s.capacity;
+          ss.addFlight(f);
+          if (previous) {
+            fromSectors.addSector(ss);
+            fromSorted.add(0,ss);
+          }
+          else {
+            toSectors.addSector(ss);
+            toSorted.add(ss);
+          }
+        }
+        for (int i=0; i<sInFocus.sortedFlights.size(); i++) {
+          FlightInSector f = sInFocus.sortedFlights.get(i);
+          if (f.flightId.equals(focusFlightId))
+            continue;
+          if (f.prevSectorId!=null) {
+            FlightInSector ff=null;
+            OneSectorData s=sectors.getSectorData(f.prevSectorId);
+            if (s!=null)
+              ff=s.getFlightData(f.flightId,f.entryTime,null);
+            if (ff!=null) {
+              OneSectorData sFrom = fromSectors.getSectorData(ff.sectorId);
+              if (sFrom != null)
+                sFrom.addFlight(ff);
+            }
+            ff=null;
+            s=sectors.getSectorData(f.nextSectorId);
+            if (s!=null)
+              ff=s.getFlightData(f.flightId,null,f.exitTime);
+            if (ff!=null) {
+              OneSectorData sTo = toSectors.getSectorData(ff.sectorId);
+              if (sTo != null) sTo.addFlight(ff);
+            }
+          }
+        }
+      }
+    }
+    if (fromSectors.getNSectors()<1 && toSectors.getNSectors()<1) {
+      for (int i = 0; i < sInFocus.sortedFlights.size(); i++) {
+        FlightInSector f = sInFocus.sortedFlights.get(i);
+        if (f.prevSectorId != null) {
+          FlightInSector ff = null;
+          OneSectorData s = sectors.getSectorData(f.prevSectorId);
+          if (s != null)
+            ff = s.getFlightData(f.flightId, f.entryTime, null);
+          if (ff != null) {
+            OneSectorData sFrom = fromSectors.getSectorData(ff.sectorId);
+            if (sFrom == null) {
+              sFrom = new OneSectorData();
+              sFrom.sectorId = ff.sectorId;
+              sFrom.capacity = s.capacity;
+              fromSectors.addSector(sFrom);
+            }
+            sFrom.addFlight(ff);
+          }
+          ff = null;
+          s = sectors.getSectorData(f.nextSectorId);
+          if (s != null)
+            ff = s.getFlightData(f.flightId, null, f.exitTime);
+          if (ff != null) {
+            OneSectorData sTo = toSectors.getSectorData(ff.sectorId);
+            if (sTo == null) {
+              sTo = new OneSectorData();
+              sTo.sectorId = ff.sectorId;
+              sTo.capacity = s.capacity;
+              toSectors.addSector(sTo);
+            }
+            sTo.addFlight(ff);
+          }
+        }
+      }
+      fromSorted=fromSectors.getSectorsSortedByNFlights();
+      toSorted=toSectors.getSectorsSortedByNFlights();
+    }
+  }
+  
   public void setFocusSector(String sectorId) {
     flightDrawers=null;
     if (sectors==null) return;
@@ -112,45 +215,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     }
     else
       sInFocus=sectors.getSectorData(sectorId);
-    if (sInFocus!=null && sInFocus.sortedFlights!=null && !sInFocus.sortedFlights.isEmpty()) {
-      fromSectors=new SectorSet();
-      toSectors=new SectorSet();
-      for (int i=0; i<sInFocus.sortedFlights.size(); i++) {
-        FlightInSector f=sInFocus.sortedFlights.get(i);
-        if (f.prevSectorId!=null) {
-          FlightInSector ff=null;
-          OneSectorData s=sectors.getSectorData(f.prevSectorId);
-          if (s!=null)
-            ff=s.getFlightData(f.flightId,f.entryTime,null);
-          if (ff!=null) {
-            OneSectorData sFrom = fromSectors.getSectorData(ff.sectorId);
-            if (sFrom == null) {
-              sFrom = new OneSectorData();
-              sFrom.sectorId = ff.sectorId;
-              sFrom.capacity=s.capacity;
-              fromSectors.addSector(sFrom);
-            }
-            sFrom.addFlight(ff);
-          }
-          ff=null;
-          s=sectors.getSectorData(f.nextSectorId);
-          if (s!=null)
-            ff=s.getFlightData(f.flightId,null,f.exitTime);
-          if (ff!=null) {
-            OneSectorData sTo = toSectors.getSectorData(ff.sectorId);
-            if (sTo == null) {
-              sTo = new OneSectorData();
-              sTo.sectorId = ff.sectorId;
-              sTo.capacity=s.capacity;
-              toSectors.addSector(sTo);
-            }
-            sTo.addFlight(ff);
-          }
-        }
-      }
-      fromSorted=fromSectors.getSectorsSortedByNFlights();
-      toSorted=toSectors.getSectorsSortedByNFlights();
-    }
+    getPreviousAndNextSectors();
     off_Valid=false;
     selection_Valid=false;
     redraw();
@@ -158,6 +223,16 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
   
   public String getFocusSectorId(){
     return sInFocus.sectorId;
+  }
+  
+  public void setFocusFlight(String flightId) {
+    if (flightId==focusFlightId)
+      return;
+    focusFlightId=flightId;
+    getPreviousAndNextSectors();
+    off_Valid=false;
+    selection_Valid=false;
+    redraw();
   }
   
   public ArrayList<String> getFromSectorIds() {
