@@ -545,6 +545,8 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     if (idx>=0) {
       selectedObjIds.remove(idx);
       selection_Valid=false;
+      if (showOnlySelectedFlights)
+        off_Valid=false;
       redraw();
       sendActionEvent("object_selection");
     }
@@ -787,6 +789,8 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
                 selection_Valid=false;
               }
             }
+          if (!selection_Valid && showOnlySelectedFlights)
+            off_Valid=false;
         }
         sendActionEvent("object_selection");
       }
@@ -805,12 +809,16 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
               selectedObjIds = new ArrayList<String>(50);
             selectedObjIds.add(flightDrawers[fIdx].flightId);
             selection_Valid=false;
+            if (showOnlySelectedFlights)
+              off_Valid=false;
             redraw();
             sendActionEvent("object_selection");
           }
           else {
             selectedObjIds.remove(flightDrawers[fIdx].flightId);
             selection_Valid=false;
+            if (showOnlySelectedFlights)
+              off_Valid=false;
             redraw();
             sendActionEvent("object_selection");
           }
