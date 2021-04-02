@@ -25,6 +25,12 @@ public class SectorSet {
     return sectors.get(sectorId);
   }
   
+  public boolean hasSector(String sectorId) {
+    if (sectorId==null || sectors==null || sectors.isEmpty())
+      return false;
+    return sectors.containsKey(sectorId);
+  }
+  
   public void addSector(OneSectorData sector) {
     if (sector==null)
       return;

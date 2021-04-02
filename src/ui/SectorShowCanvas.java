@@ -324,6 +324,15 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     return LocalTime.of(h,m,s);
   }
   
+  protected int getSectorIndexInSortedList(String sectorId, ArrayList<OneSectorData> sorted) {
+    if (sectorId==null || sorted==null)
+      return -1;
+    for (int i=0; i<sorted.size(); i++)
+      if (sectorId.equals(sorted.get(i).sectorId))
+        return i;
+    return -1;
+  }
+  
   public void paintComponent(Graphics gr) {
     int w=getWidth(), h=getHeight();
     if (w<10 || h<10)
@@ -430,45 +439,57 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
   
     y=yMarg+hFrom;
     for (int i=0; i<sInFocus.sortedFlights.size(); i++) {
+      flightDrawers[i].clearPath();
       FlightInSector f=sInFocus.sortedFlights.get(i);
-      if (showOnlySelectedFlights && (selectedObjIds==null || !selectedObjIds.contains(f.flightId))) {
-        flightDrawers[i].setXYFocus(-1,-1,-1,-1);
-        flightDrawers[i].setNoPrevious();
-        flightDrawers[i].setNoNext();
+      if (showOnlySelectedFlights && (selectedObjIds==null || !selectedObjIds.contains(f.flightId)))
         continue;
+      ArrayList<FlightInSector> seq=sectors.getSectorVisitSequence(f.flightId);
+      int fIdx=-1;
+      for (int j=0; j<seq.size() && fIdx<0; j++)
+        if (f.equals(seq.get(j)))
+          fIdx=j;
+      int idx1=fIdx, idx2=fIdx;
+      for (int j=fIdx-1; j>=0 && fromSectors.hasSector(seq.get(j).sectorId); j--) {
+        if (j+1<fIdx) {
+          int k1=getSectorIndexInSortedList(seq.get(j).sectorId,fromSorted),
+              k2=getSectorIndexInSortedList(seq.get(j+1).sectorId,fromSorted);
+          if (k1<=k2)
+            break;
+        }
+        idx1 = j;
       }
-      int x1=getXPos(f.entryTime,tWidth)+tMarg, x2=getXPos(f.exitTime,tWidth)+tMarg;
-      flightDrawers[i].setXYFocus(x1,x2,y,y+hFocus);
-      flightDrawers[i].setNoPrevious();
-      flightDrawers[i].setNoNext();
-      FlightInSector ff=null;
-      if (f.prevSectorId!=null && fromSectors!=null) {
-        OneSectorData s=fromSectors.getSectorData(f.prevSectorId);
-        ff=(s==null)?null:s.getFlightData(f.flightId,f.entryTime,null);
-        if (ff!=null) {
-          int sIdx=-1;
-          for (int j=0; j<fromSorted.size() && sIdx<0; j++)
-            if (s.sectorId.equals(fromSorted.get(j).sectorId))
-              sIdx=j;
+      for (int j=fIdx+1; j<seq.size() && toSectors.hasSector(seq.get(j).sectorId); j++) {
+        if (j-1>fIdx) {
+          int k1=getSectorIndexInSortedList(seq.get(j-1).sectorId,toSorted),
+              k2=getSectorIndexInSortedList(seq.get(j).sectorId,toSorted);
+          if (k2<=k1)
+            break;
+        }
+        idx2 = j;
+      }
+      for (int j=idx1; j<=idx2; j++) {
+        FlightInSector ff=seq.get(j);
+        if (j==fIdx)  // path segment in the focus sector
+          flightDrawers[i].addPathSegment(getXPos(ff.entryTime,tWidth)+tMarg,
+              getXPos(ff.exitTime,tWidth)+tMarg,y,y+hFocus,true);
+        else
+        if (j<fIdx)  { // path segment in one of the previous sectors
+          OneSectorData s=fromSectors.getSectorData(ff.sectorId);
+          int sIdx=getSectorIndexInSortedList(s.sectorId,fromSorted);
           if (sIdx>=0) {
             int yy=yMarg+(nFrom-sIdx-1)*(hOther+vSpace);
-            int xx1=getXPos(ff.entryTime,tWidth)+tMarg, xx2=getXPos(ff.exitTime,tWidth)+tMarg;
-            flightDrawers[i].setXYPrevious(xx1,xx2,yy,yy+hOther);
+            flightDrawers[i].addPathSegment(getXPos(ff.entryTime,tWidth)+tMarg,
+                getXPos(ff.exitTime,tWidth)+tMarg,yy,yy+hOther,false);
           }
         }
-      }
-      if (f.nextSectorId!=null && toSectors!=null) {
-        OneSectorData s=toSectors.getSectorData(f.nextSectorId);
-        ff=(s==null)?null:s.getFlightData(f.flightId,null,f.exitTime);
-        if (ff!=null) {
-          int sIdx=-1;
-          for (int j=0; j<toSorted.size() && sIdx<0; j++)
-            if (s.sectorId.equals(toSorted.get(j).sectorId))
-              sIdx=j;
+        else { // path segment in one of the following sectors
+          OneSectorData s=toSectors.getSectorData(ff.sectorId);
+          int sIdx=getSectorIndexInSortedList(s.sectorId,toSorted);
           if (sIdx>=0) {
             int yy=yMarg+hFrom+hFocus+vSpace+sIdx*(hOther+vSpace);
             int xx1=getXPos(ff.entryTime,tWidth)+tMarg, xx2=getXPos(ff.exitTime,tWidth)+tMarg;
-            flightDrawers[i].setXYNext(xx1,xx2,yy,yy+hOther);
+            flightDrawers[i].addPathSegment(getXPos(ff.entryTime,tWidth)+tMarg,
+                getXPos(ff.exitTime,tWidth)+tMarg,yy,yy+hOther,false);
           }
         }
       }

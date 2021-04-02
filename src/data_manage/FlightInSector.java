@@ -27,6 +27,21 @@ public class FlightInSector implements Comparable<FlightInSector>{
    */
   public String prevSectorId=null, nextSectorId=null;
   
+  public boolean equals (Object obj) {
+    if (obj==null)
+      return false;
+    if (!(obj instanceof FlightInSector))
+      return false;
+    if (this==obj)
+      return true;
+    FlightInSector f=(FlightInSector)obj;
+    if (!this.flightId.equals(f.flightId)) return false;
+    if (!this.sectorId.equals(f.sectorId)) return false;
+    if (!this.entryTime.equals(f.entryTime)) return false;
+    if (!this.exitTime.equals(f.exitTime)) return false;
+    return true;
+  }
+  
   /**
    * Tries to get values of internal variables from the given data record.
    * If successful, constructs and returns an instance of the class.

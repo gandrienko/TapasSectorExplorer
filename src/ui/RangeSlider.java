@@ -96,4 +96,9 @@ public class RangeSlider extends JSlider {
     // Set extent to set upper value.
     setExtent(newExtent);
   }
+  
+  public void setFullRange () {
+    getModel().setRangeProperties(getMinimum(), getMaximum()-getMinimum(), getMinimum(),
+        getMaximum(), getValueIsAdjusting());
+  }
 }

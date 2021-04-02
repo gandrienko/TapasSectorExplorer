@@ -54,6 +54,7 @@ public class SectorShowPanel extends JPanel
   
   protected RangeSlider timeFocuser=null;
   protected JTextField tfTStart=null, tfTEnd=null;
+  protected JButton bFullRange=null;
   
   public SectorShowPanel(SectorSet sectors) {
     super();
@@ -123,6 +124,11 @@ public class SectorShowPanel extends JPanel
     pp.add(tfTStart);
     pp.add(timeFocuser);
     pp.add(tfTEnd);
+    bFullRange=new JButton("Restore full range");
+    bFullRange.setActionCommand("full_time_range");
+    bFullRange.addActionListener(this);
+    bFullRange.setEnabled(false);
+    pp.add(bFullRange);
     
     canvas=new SectorShowCanvas(sectors);
     canvas.setFocusSector(sortedSectors.get(maxIdx).sectorId);
@@ -247,6 +253,11 @@ public class SectorShowPanel extends JPanel
         }
       }
     }
+    else
+    if (ae.getActionCommand().equals("full_time_range"))  {
+      if (timeFocuser.getValue()>timeFocuser.getMinimum() || timeFocuser.getUpperValue()<timeFocuser.getMaximum())
+        timeFocuser.setFullRange();
+    }
   }
   public void itemStateChanged(ItemEvent e) {
     if (e.getSource().equals(cbShowOnlySelected)) {
@@ -291,6 +302,7 @@ public class SectorShowPanel extends JPanel
     tfTEnd.setText(String.format("%02d:%02d",m2/60,m2%60));
     if (canvas!=null)
       canvas.setTimeRange(m1,m2);
+    bFullRange.setEnabled(m1>timeFocuser.getMinimum() || m2<timeFocuser.getMaximum());
   }
   
 }

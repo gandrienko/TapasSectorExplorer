@@ -144,6 +144,9 @@ public class SelectedFlightsInfoShow extends JPanel
             pan.setBackground(this.getBackground());
             add(pan);
             add(Box.createRigidArea(new Dimension(0, 3)));
+            ArrayList<FlightInSector> seq=sectors.getSectorVisitSequence(shownFlIds.get(i));
+            int lIdx=-1;
+            boolean passedFocusSector=false;
             for (int j=0; j<pan.getComponentCount(); j++)
               if (pan.getComponent(j) instanceof JCheckBox)
                 flCB.add((JCheckBox)pan.getComponent(j));
@@ -154,14 +157,22 @@ public class SelectedFlightsInfoShow extends JPanel
                 int ii=id.indexOf(':');
                 if (ii>0) {
                   id = id.substring(0, ii);
-                  if (id.equals(focusSectorId))
-                    lab.setForeground(SectorShowCanvas.focusSectorColor);
-                  else
-                  if (fromSectorIds!=null && fromSectorIds.contains(id))
-                    lab.setForeground(SectorShowCanvas.fromSectorColor);
-                  else
-                  if (toSectorIds!=null && toSectorIds.contains(id))
-                    lab.setForeground(SectorShowCanvas.toSectorColor);
+                  FlightInSector f=seq.get(lIdx+1);
+                  if (id.equals(f.sectorId)) {
+                    ++lIdx;
+                    if (id.equals(focusSectorId)) {
+                      lab.setForeground(SectorShowCanvas.focusSectorColor);
+                      passedFocusSector=true;
+                    }
+                    else
+                    if (!passedFocusSector && fromSectorIds != null && fromSectorIds.contains(id))
+                      lab.setForeground(SectorShowCanvas.fromSectorColor);
+                    else
+                    if (passedFocusSector && toSectorIds != null && toSectorIds.contains(id))
+                      lab.setForeground(SectorShowCanvas.toSectorColor);
+                    else
+                      lab.setForeground(getForeground());
+                  }
                   else
                     lab.setForeground(getForeground());
                 }
@@ -197,16 +208,19 @@ public class SelectedFlightsInfoShow extends JPanel
           pan.add(cb);
           pan.add(Box.createRigidArea(new Dimension(0, 5)));
           
+          boolean passedFocusSector=false;
           for (int j=0; j<seq.size(); j++) {
             FlightInSector f=seq.get(j);
             JLabel lab=new JLabel(f.sectorId+": "+f.entryTime+".."+f.exitTime);
-            if (f.sectorId.equals(focusSectorId))
+            if (f.sectorId.equals(focusSectorId)) {
               lab.setForeground(SectorShowCanvas.focusSectorColor);
+              passedFocusSector=true;
+            }
             else
-            if (fromSectorIds!=null && fromSectorIds.contains(f.sectorId))
+            if (!passedFocusSector && fromSectorIds!=null && fromSectorIds.contains(f.sectorId))
               lab.setForeground(SectorShowCanvas.fromSectorColor);
             else
-            if (toSectorIds!=null && toSectorIds.contains(f.sectorId))
+            if (passedFocusSector && toSectorIds!=null && toSectorIds.contains(f.sectorId))
               lab.setForeground(SectorShowCanvas.toSectorColor);
             svLabels.add(lab);
             pan.add(lab);
