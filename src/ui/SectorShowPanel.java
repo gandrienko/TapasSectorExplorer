@@ -51,16 +51,32 @@ public class SectorShowPanel extends JPanel
    * Used for switching between showing all flights and only selected ones
    */
   protected JCheckBox cbShowOnlySelected=null;
-  
+  /**
+   * Controls for selecting the time range to view
+   */
   protected RangeSlider timeFocuser=null;
   protected JTextField tfTStart=null, tfTEnd=null;
   protected JButton bFullRange=null;
+  /**
+   * Controls for highlighting excesses of capacity
+   */
+  protected JCheckBox cbHighlightExcess=null;
+  protected JTextField tfPercentExcess=null;
+  protected JComboBox chEntriesOrPresence=null;
+  /**
+   * Whether to list all selected flights or only visible
+   */
+  protected JRadioButton rbListAll=null, rbListVisible=null;
   
   public SectorShowPanel(SectorSet sectors) {
     super();
     if (sectors==null || sectors.getNSectors()<1)
       return;
-    setLayout(new BorderLayout());
+    
+    JPanel mainP=new JPanel(new BorderLayout());
+    
+    JPanel bp=new JPanel(new GridLayout(0,1));
+    mainP.add(bp,BorderLayout.SOUTH);
 
     sortedSectors=sectors.getSectorsSortedByIdentifiers();
     chSectors=new JComboBox();
@@ -78,35 +94,23 @@ public class SectorShowPanel extends JPanel
       }
     }
     chSectors.setSelectedIndex(maxIdx);
-    JPanel p=new JPanel(new FlowLayout(FlowLayout.CENTER,20,5));
-    add(p,BorderLayout.SOUTH);
-    p.add(new JLabel("Sectors:"));
-    p.add(chSectors);
+    
+    JPanel p=new JPanel(new BorderLayout(10,2));
+    bp.add(p);
+  
+    JPanel pp=new JPanel(new FlowLayout(FlowLayout.LEFT,5,2));
+    p.add(pp,BorderLayout.WEST);
+    pp.add(new JLabel("Sectors:"));
+    pp.add(chSectors);
     backButton=new JButton("show previous");
     backButton.setActionCommand("back");
     backButton.setEnabled(false);
     backButton.addActionListener(this);
-    p.add(backButton);
-    
-    chAggrStep=new JComboBox();
-    chAggrStep.addActionListener(this);
-    chAggrStep.addItem(new Integer(1));
-    chAggrStep.addItem(new Integer(5));
-    chAggrStep.addItem(new Integer(10));
-    chAggrStep.addItem(new Integer(15));
-    chAggrStep.addItem(new Integer(20));
-    chAggrStep.addItem(new Integer(30));
-    chAggrStep.addItem(new Integer(60));
-    JPanel pp=new JPanel(new FlowLayout(FlowLayout.CENTER,5,5));
-    pp.add(new JLabel("Aggregation time step:"));
-    pp.add(chAggrStep);
-    pp.add(new JLabel("minutes"));
-    p.add(pp);
-    
-    cbShowOnlySelected=new JCheckBox("Show only selected flights",false);
-    cbShowOnlySelected.addItemListener(this);
-    p.add(cbShowOnlySelected);
-    
+    pp.add(backButton);
+  
+    pp.add(Box.createRigidArea(new Dimension(10, 0)));
+    pp.add(new JLabel("Show time interval:"));
+
     timeFocuser=new RangeSlider();
     timeFocuser.setPreferredSize(new Dimension(240,timeFocuser.getPreferredSize().height));
     timeFocuser.setMinimum(0);
@@ -118,35 +122,97 @@ public class SectorShowPanel extends JPanel
     tfTEnd=new JTextField("24:00");
     tfTStart.addActionListener(this);
     tfTEnd.addActionListener(this);
-    pp=new JPanel(new FlowLayout(FlowLayout.CENTER,5,5));
-    p.add(pp);
-    pp.add(new JLabel("Show time interval:"));
-    pp.add(tfTStart);
-    pp.add(timeFocuser);
-    pp.add(tfTEnd);
+    pp=new JPanel(new BorderLayout(5,2));
+    p.add(pp,BorderLayout.CENTER);
+    pp.add(tfTStart,BorderLayout.WEST);
+    pp.add(timeFocuser,BorderLayout.CENTER);
+    pp.add(tfTEnd,BorderLayout.EAST);
+  
+    pp=new JPanel(new FlowLayout(FlowLayout.LEFT,5,2));
+    p.add(pp,BorderLayout.EAST);
     bFullRange=new JButton("Restore full range");
     bFullRange.setActionCommand("full_time_range");
     bFullRange.addActionListener(this);
     bFullRange.setEnabled(false);
     pp.add(bFullRange);
+  
+    pp.add(Box.createRigidArea(new Dimension(10, 0)));
+    cbShowOnlySelected=new JCheckBox("Show only selected flights",false);
+    cbShowOnlySelected.addItemListener(this);
+    pp.add(cbShowOnlySelected);
+  
+    p=new JPanel(new FlowLayout(FlowLayout.CENTER,20,2));
+    bp.add(p);
+  
+    chAggrStep=new JComboBox();
+    chAggrStep.addActionListener(this);
+    chAggrStep.addItem(new Integer(1));
+    chAggrStep.addItem(new Integer(5));
+    chAggrStep.addItem(new Integer(10));
+    chAggrStep.addItem(new Integer(15));
+    chAggrStep.addItem(new Integer(20));
+    chAggrStep.addItem(new Integer(30));
+    chAggrStep.addItem(new Integer(60));
+    pp=new JPanel(new FlowLayout(FlowLayout.CENTER,5,2));
+    pp.add(new JLabel("Aggregation time step:"));
+    pp.add(chAggrStep);
+    pp.add(new JLabel("minutes"));
+    p.add(pp);
+  
+    pp=new JPanel(new FlowLayout(FlowLayout.CENTER,5,2));
+    cbHighlightExcess=new JCheckBox("Highlight >",true);
+    pp.add(cbHighlightExcess);
+    cbHighlightExcess.addItemListener(this);
+    tfPercentExcess=new JTextField("0",4);
+    pp.add(tfPercentExcess);
+    tfPercentExcess.addActionListener(this);
+    pp.add(new JLabel("% excess of sector capacity regarding"));
+    chEntriesOrPresence=new JComboBox();
+    pp.add(chEntriesOrPresence);
+    chEntriesOrPresence.addItem("entries");
+    chEntriesOrPresence.addItem("occupancy");
+    chEntriesOrPresence.setSelectedIndex(1);
+    chEntriesOrPresence.addActionListener(this);
+    p.add(pp);
     
     canvas=new SectorShowCanvas(sectors);
     canvas.setFocusSector(sortedSectors.get(maxIdx).sectorId);
     canvas.addActionListener(this);
     chAggrStep.setSelectedItem(Integer.toString(canvas.getAggregationTimeStep()));
+    mainP.add(canvas,BorderLayout.CENTER);
   
     flInfoPanel=new SelectedFlightsInfoShow(sectors);
     flInfoPanel.addActionListener(this);
     flInfoPanel.setCurrentSectors(canvas.getFocusSectorId(),canvas.getFromSectorIds(),canvas.getToSectorIds());
     JScrollPane scp=new JScrollPane(flInfoPanel);
-    JSplitPane spl=new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,canvas,scp);
+    
+    p=new JPanel(new BorderLayout());
+    p.add(scp,BorderLayout.CENTER);
+    bp=new JPanel(new GridLayout(0,1));
+    p.add(bp,BorderLayout.SOUTH);
+    
+    rbListVisible=new JRadioButton("only visible",true);
+    rbListVisible.addActionListener(this);
+    rbListAll=new JRadioButton("all",false);
+    rbListAll.addActionListener(this);
+    ButtonGroup g=new ButtonGroup();
+    g.add(rbListVisible);
+    g.add(rbListAll);
+    bp.add(new JLabel("List selected flights:",JLabel.CENTER));
+    pp=new JPanel(new FlowLayout(FlowLayout.CENTER,5,0));
+    pp.add(rbListVisible);
+    pp.add(rbListAll);
+    bp.add(pp);
+    
+    JSplitPane spl=new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,mainP,p);
+    setLayout(new BorderLayout());
     add(spl,BorderLayout.CENTER);
     spl.setDividerLocation(canvas.getPreferredSize().width);
   
     sectorSelections=new ArrayList<Integer>(100);
     sectorSelections.add(maxIdx);
-    setPreferredSize(new Dimension(canvas.getPreferredSize().width+150,
-        canvas.getPreferredSize().height+50));
+    //setPreferredSize(new Dimension(canvas.getPreferredSize().width+150,
+        //canvas.getPreferredSize().height+50));
   }
   
   

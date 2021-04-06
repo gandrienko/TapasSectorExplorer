@@ -146,7 +146,7 @@ public class SectorSet {
           String sectorId=rec[sAIdx].toString();
           int cap=(rec[cAIdx] instanceof Integer)?(Integer)rec[cAIdx]:
                       (rec[cAIdx] instanceof Double)?((Double)rec[cAIdx]).intValue():0;
-          if (cap>0) {
+          if (cap>0 && cap!=999) {
             OneSectorData sector=getSectorData(sectorId);
             if (sector!=null) {
               sector.capacity = cap;
