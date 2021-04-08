@@ -887,7 +887,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       if (is[0]==0)
         return;
       hlIdx = -1;
-      if (is[0]==-1)
+      if (is[0]==-1 && is[1]>=0)
         sendActionEvent("select_sector:"+fromSorted.get(is[1]).sectorId);
       else
         sendActionEvent("select_sector:"+toSorted.get(is[1]).sectorId);

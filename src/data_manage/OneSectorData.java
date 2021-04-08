@@ -123,23 +123,25 @@ public class OneSectorData {
         FlightInSector f=sortedFlights.get(i);
         if (f.entryTime==null || f.exitTime==null)
           continue;
+        if (done!=null && done.contains(f.flightId))
+          continue;
         int m1 = f.entryTime.getHour() * 60 + f.entryTime.getMinute(),
-            m2 = f.exitTime.getHour() * 60 + f.exitTime.getMinute() + 60;
-        int idx1 = m1 / tStep, idx2 = m2 / tStep;
+            m2 = f.exitTime.getHour() * 60 + f.exitTime.getMinute();
+        int idx1 = (m1-59)/tStep+1, idx2 = m2/tStep;
         if (idx1<0 || idx2<idx1)
           continue;
-        for (int j = idx1; j <= idx2 && j < counts.length; j++)
+        for (int j = Math.max(0,idx1); j < idx2 && j < counts.length; j++)
           ++counts[j];
         if (repeatedVisits!=null && repeatedVisits.contains(f.flightId) &&
                 !done.contains(f.flightId)){
           FlightInSector visits[]=getAllVisits(f.flightId);
           for (int k=1; k<visits.length; k++) {
             m1 = visits[k].entryTime.getHour() * 60 + visits[k].entryTime.getMinute();
-            m2 = visits[k].exitTime.getHour() * 60 + visits[k].exitTime.getMinute() + 60;
-            int nextIdx1 = m1 / tStep, nextIdx2 = m2 / tStep;
-            if (nextIdx2<=idx2) //already counted
+            m2 = visits[k].exitTime.getHour() * 60 + visits[k].exitTime.getMinute();
+            int nextIdx1 = Math.max((m1-59)/tStep+1, idx2+1), nextIdx2 = m2/ tStep;
+            if (nextIdx2<nextIdx1) //already counted
               continue;
-            for (int j = Math.max(idx2+1,nextIdx1); j <= nextIdx2 && j < counts.length; j++)
+            for (int j = Math.max(0,nextIdx1); j < nextIdx2 && j < counts.length; j++)
               ++counts[j];
             idx2=nextIdx2;
           }
@@ -156,6 +158,11 @@ public class OneSectorData {
   public int[] getHourlyEntryCounts(int tStep, boolean ignoreReEntries) {
     if (tStep<=0)
       return null;
+    /*
+    if (ignoreReEntries && tStep==20 && sectorId.equals("LECMTLL")) {
+      entryCounts=null;
+    }
+    */
     if (entryCounts!=null && tStepEntryCounts ==tStep && reEntriesIgnored==ignoreReEntries)
       return entryCounts;
     int nSteps=minutesInDay/tStep;
@@ -171,21 +178,22 @@ public class OneSectorData {
         FlightInSector f=sortedFlights.get(i);
         if (f.entryTime==null)
           continue;
-        int m1=f.entryTime.getHour()*60+f.entryTime.getMinute(), m2=m1+60;
-        int idx1=m1/tStep, idx2=m2/tStep;
-        for (int j=idx1; j<=idx2 && j<counts.length; j++)
+        if (done!=null && done.contains(f.flightId))
+          continue;
+        int m=f.entryTime.getHour()*60+f.entryTime.getMinute();
+        int idx1=(m-59)/tStep+1, idx2=m/tStep;
+        for (int j=Math.max(0,idx1); j<idx2 && j<counts.length; j++)
           ++counts[j];
         if (ignoreReEntries &&
                 repeatedVisits!=null && repeatedVisits.contains(f.flightId) &&
                 !done.contains(f.flightId)){
           FlightInSector visits[]=getAllVisits(f.flightId);
           for (int k=1; k<visits.length; k++) {
-            m1 = visits[k].entryTime.getHour() * 60 + visits[k].entryTime.getMinute();
-            m2 = m1 + 60;
-            int nextIdx1 = m1 / tStep, nextIdx2 = m2 / tStep;
+            m = visits[k].entryTime.getHour() * 60 + visits[k].entryTime.getMinute();
+            int nextIdx1 = (m-59)/tStep+1, nextIdx2 = m/tStep;
             if (nextIdx2<=idx2) //already counted
               continue;
-            for (int j = Math.max(idx2+1,nextIdx1); j <= nextIdx2 && j < counts.length; j++)
+            for (int j = Math.max(idx2+1,nextIdx1); j < nextIdx2 && j < counts.length; j++)
               ++counts[j];
             idx2=nextIdx2;
           }

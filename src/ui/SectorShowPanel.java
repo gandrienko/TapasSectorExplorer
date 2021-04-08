@@ -71,6 +71,10 @@ public class SectorShowPanel extends JPanel
    */
   protected JCheckBox cbIgnoreReEntries =null;
   /**
+   * Shows how many flights are currently selected
+   */
+  protected JLabel labSelFlights=null;
+  /**
    * Whether to list all selected flights or only visible
    */
   protected JRadioButton rbListAll=null, rbListVisible=null;
@@ -200,17 +204,20 @@ public class SectorShowPanel extends JPanel
     p=new JPanel(new BorderLayout());
     p.add(scp,BorderLayout.CENTER);
     bp=new JPanel(new GridLayout(0,1));
-    p.add(bp,BorderLayout.SOUTH);
+    p.add(bp,BorderLayout.NORTH);
     
-    rbListVisible=new JRadioButton("only visible",true);
+    labSelFlights=new JLabel("0 flights selected",JLabel.CENTER);
+    bp.add(labSelFlights);
+    
+    rbListVisible=new JRadioButton("visible",true);
     rbListVisible.addActionListener(this);
     rbListAll=new JRadioButton("all",false);
     rbListAll.addActionListener(this);
     ButtonGroup g=new ButtonGroup();
     g.add(rbListVisible);
     g.add(rbListAll);
-    bp.add(new JLabel("List selected flights:",JLabel.CENTER));
     pp=new JPanel(new FlowLayout(FlowLayout.CENTER,5,0));
+    pp.add(new JLabel("List"));
     pp.add(rbListVisible);
     pp.add(rbListAll);
     bp.add(pp);
@@ -339,6 +346,13 @@ public class SectorShowPanel extends JPanel
     if (ae.getActionCommand().equals("full_time_range"))  {
       if (timeFocuser.getValue()>timeFocuser.getMinimum() || timeFocuser.getUpperValue()<timeFocuser.getMaximum())
         timeFocuser.setFullRange();
+    }
+    if (canvas!=null) {
+      ArrayList<String> selected = canvas.getSelectedObjectIds(), visible = canvas.getSelectedVisibleObjectIds();
+      String txt = ((selected == null) ? "0" : Integer.toString(selected.size())) + " flights selected; " +
+                       ((visible == null) ? "0" : Integer.toString(visible.size())) + " visible";
+      labSelFlights.setText(txt);
+      labSelFlights.setSize(labSelFlights.getPreferredSize());
     }
   }
   public void itemStateChanged(ItemEvent e) {
