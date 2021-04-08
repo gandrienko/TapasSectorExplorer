@@ -8,7 +8,7 @@ import java.util.ArrayList;
  */
 public class FlightDrawer {
   public static Stroke thickStroke=new BasicStroke(3);
-  public static Color focusSectorLineColour=new Color(128,0,0,50),
+  public static Color focusSectorLineColour=new Color(128,80,0,50),
     fromSectorLineColor=new Color(0,128,128,70),
     fromConnectLineColor=new Color(0,128,128,60),
     toSectorLineColor=new Color(0,0,128,60),

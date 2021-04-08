@@ -62,7 +62,14 @@ public class SectorShowPanel extends JPanel
    */
   protected JCheckBox cbHighlightExcess=null;
   protected JTextField tfPercentExcess=null;
+  /**
+   * What to count: entries or presence
+   */
   protected JComboBox chEntriesOrPresence=null;
+  /**
+   * Whether to ignore repeated entries
+   */
+  protected JCheckBox cbIgnoreReEntries =null;
   /**
    * Whether to list all selected flights or only visible
    */
@@ -144,6 +151,9 @@ public class SectorShowPanel extends JPanel
     p=new JPanel(new FlowLayout(FlowLayout.CENTER,20,2));
     bp.add(p);
   
+    pp=new JPanel(new FlowLayout(FlowLayout.CENTER,5,2));
+    p.add(pp);
+    pp.add(new JLabel("Aggregation time step:"));
     chAggrStep=new JComboBox();
     chAggrStep.addActionListener(this);
     chAggrStep.addItem(new Integer(1));
@@ -153,27 +163,28 @@ public class SectorShowPanel extends JPanel
     chAggrStep.addItem(new Integer(20));
     chAggrStep.addItem(new Integer(30));
     chAggrStep.addItem(new Integer(60));
-    pp=new JPanel(new FlowLayout(FlowLayout.CENTER,5,2));
-    pp.add(new JLabel("Aggregation time step:"));
     pp.add(chAggrStep);
     pp.add(new JLabel("minutes"));
-    p.add(pp);
+  
+    cbIgnoreReEntries=new JCheckBox("Ignore re-entries",false);
+    cbIgnoreReEntries.addItemListener(this);
+    p.add(cbIgnoreReEntries);
   
     pp=new JPanel(new FlowLayout(FlowLayout.CENTER,5,2));
-    cbHighlightExcess=new JCheckBox("Highlight >",true);
+    p.add(pp);
+    cbHighlightExcess=new JCheckBox("Highlight excess of sector capacity by over",true);
     pp.add(cbHighlightExcess);
     cbHighlightExcess.addItemListener(this);
-    tfPercentExcess=new JTextField("0",4);
+    tfPercentExcess=new JTextField("10",4);
     pp.add(tfPercentExcess);
     tfPercentExcess.addActionListener(this);
-    pp.add(new JLabel("% excess of sector capacity regarding"));
+    pp.add(new JLabel("% regarding"));
     chEntriesOrPresence=new JComboBox();
     pp.add(chEntriesOrPresence);
     chEntriesOrPresence.addItem("entries");
-    chEntriesOrPresence.addItem("occupancy");
+    chEntriesOrPresence.addItem("presence");
     chEntriesOrPresence.setSelectedIndex(1);
     chEntriesOrPresence.addActionListener(this);
-    p.add(pp);
     
     canvas=new SectorShowCanvas(sectors);
     canvas.setFocusSector(sortedSectors.get(maxIdx).sectorId);
@@ -231,6 +242,11 @@ public class SectorShowPanel extends JPanel
     if (ae.getSource().equals(chAggrStep)) {
       if (canvas!=null)
         canvas.setAggregationTimeStep((Integer)chAggrStep.getSelectedItem());
+    }
+    else
+    if (ae.getSource().equals(chEntriesOrPresence)) {
+      if (canvas!=null)
+        canvas.setToCountEntries(chEntriesOrPresence.getSelectedIndex()==0);
     }
     else
     if (ae.getSource().equals(chSectors) && canvas!=null) {
@@ -329,6 +345,11 @@ public class SectorShowPanel extends JPanel
     if (e.getSource().equals(cbShowOnlySelected)) {
       if (canvas!=null)
         canvas.setShowOnlySelectedFlights(cbShowOnlySelected.isSelected());
+    }
+    else
+    if (e.getSource().equals(cbIgnoreReEntries)) {
+      if (canvas!=null)
+        canvas.setToIgnoreReEntries(cbIgnoreReEntries.isSelected());
     }
   }
   

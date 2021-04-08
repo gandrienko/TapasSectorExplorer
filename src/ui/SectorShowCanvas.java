@@ -13,8 +13,8 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
   public static final int secondsInDay =86400, minutesInDay=1440;
   
   public static Color
-      focusSectorColor=Color.red.darker(),
-      focusSectorBkgColor=new Color(128,0,0,30),
+      focusSectorColor=new Color(128,70,0),
+      focusSectorBkgColor=new Color(255,165,0,30),
       fromSectorColor=Color.cyan.darker().darker(),
       fromSectorBkgColor=new Color(0,128,128,30),
       toSectorColor=Color.blue.darker(),
@@ -22,7 +22,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
   
   public static Color
       flightCountColor=new Color(0, 0, 0, 40),
-      highFlightCountColor=new Color(90, 0, 0, 60),
+      highFlightCountColor=new Color(128, 0, 0, 80),
       entryCountColor=new Color(255, 255, 255, 40),
       highEntryCountColor=new Color(255, 128, 128, 60),
       capacityColor=new Color(128, 0, 0, 128);
@@ -35,6 +35,18 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
    * Time step, in minutes, for aggregating flights in sectors
    */
   public int tStepAggregates=1;
+  /**
+   * Whether to count entries (true) or presence (false, default)
+   */
+  public boolean toCountEntries=false;
+  /**
+   * Whether to ignore re-entries when counting entries; false by default
+   */
+  public boolean toIgnoreReEntries=false;
+  /**
+   * Threshold for the capacity excess to highlight, in percents
+   */
+  public float minExcessPercent=10;
   /**
    * The sector that is now in focus
    */
@@ -98,7 +110,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     super();
     this.sectors=sectors;
     Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
-    setPreferredSize(new Dimension(Math.round(0.7f*size.width), Math.round(0.85f*size.height)));
+    setPreferredSize(new Dimension(Math.round(0.7f*size.width), Math.round(0.8f*size.height)));
     setBorder(BorderFactory.createLineBorder(Color.YELLOW,1));
     ToolTipManager.sharedInstance().registerComponent(this);
     ToolTipManager.sharedInstance().setDismissDelay(Integer.MAX_VALUE);
@@ -265,6 +277,30 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     }
   }
   
+  public void setToCountEntries(boolean entries) {
+    if (this.toCountEntries != entries) {
+      this.toCountEntries = entries;
+      off_Valid = false;
+      redraw();
+    }
+  }
+  
+  public void setMinExcessPercent(float percent) {
+    if (this.minExcessPercent != percent) {
+      this.minExcessPercent = percent;
+      off_Valid = false;
+      redraw();
+    }
+  }
+  
+  public void setToIgnoreReEntries(boolean ignore) {
+    if (this.toIgnoreReEntries != ignore) {
+      this.toIgnoreReEntries = ignore;
+      off_Valid = false;
+      redraw();
+    }
+  }
+  
   public void setShowOnlySelectedFlights(boolean only) {
     if (this.showOnlySelectedFlights != only) {
       this.showOnlySelectedFlights = only;
@@ -388,9 +424,9 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     
     int nFrom=(fromSorted==null)?0:fromSorted.size(),
         nTo=(toSorted==null)?0:toSorted.size();
-    hFocus=Math.round(0.2f*plotH);
+    hFocus=Math.round(0.15f*plotH);
     hOther=(plotH-hFocus)/(nFrom+nTo);
-    vSpace=Math.round(0.4f*hOther);
+    vSpace=Math.round(0.3f*hOther);
     hOther-=vSpace;
     
     hFrom=nFrom*(hOther+vSpace);
@@ -540,7 +576,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     int fCounts[]=s.getHourlyFlightCounts(tStepAggregates);
     if (fCounts==null)
       return;
-    int eCounts[]=s.getHourlyEntryCounts(tStepAggregates);
+    int eCounts[]=s.getHourlyEntryCounts(tStepAggregates,toIgnoreReEntries);
     int max=0;
     for (int j=0; j<fCounts.length; j++)
       if (max<fCounts[j])
@@ -548,20 +584,22 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     if (max<=0) return;
     max=Math.max(max,s.capacity);
     
+    float capToHighlight=(100+minExcessPercent)*s.capacity/100;
+    
     int maxBH=fullH-2;
     for (int j = 0; j < fCounts.length; j++)
       if (fCounts[j] > 0) {
         int t=j*tStepAggregates;
         int x1 = tMarg+getXPos(t, tWidth), x2 = tMarg+getXPos(t +tStepAggregates, tWidth);
         int bh = Math.round(((float) fCounts[j]) / max * maxBH);
-        if (s.capacity > 0 && fCounts[j] > s.capacity)
+        if (!toCountEntries && s.capacity > 0 && fCounts[j] > capToHighlight)
           g.setColor(highFlightCountColor);
         else
           g.setColor(flightCountColor);
         g.fillRect(x1, y0 + fullH -1 - bh, x2 - x1 + 1, bh);
         if (eCounts[j]>0) {
           bh=Math.round(((float) eCounts[j]) / max * maxBH);
-          if (s.capacity > 0 && eCounts[j] > s.capacity)
+          if (toCountEntries && s.capacity > 0 && eCounts[j] > capToHighlight)
             g.setColor(highEntryCountColor);
           else
             g.setColor(entryCountColor);
@@ -809,7 +847,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
             float percent=100f*diff/sFull.capacity;
             txt+="; excess of capacity: "+diff+" flights ("+String.format("%.2f", percent)+"%)";
           }
-          counts=sFull.getHourlyEntryCounts(tStep);
+          counts=sFull.getHourlyEntryCounts(tStep,toIgnoreReEntries);
           if (counts!=null) {
             txt+="<br>Hourly entries: " + counts[idx];
             if (counts[idx]>sFull.capacity) {
