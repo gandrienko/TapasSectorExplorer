@@ -18,7 +18,7 @@ public class SelectedFlightsInfoShow extends JPanel
   /**
    * Identifiers of selected flights and identifiers of those of them that are currently shown
    */
-  public ArrayList<String> selectedFlIds=null, shownFlIds=null;
+  public ArrayList<String> selectedFlIds=null, visibleFlIds =null;
   /**
    * Identifier of the sector that is currently in focus 
    */
@@ -120,6 +120,7 @@ public class SelectedFlightsInfoShow extends JPanel
   protected ArrayList<JLabel> svLabels=null; //each label corresponds to one visit of a sector by a flight
   protected ArrayList<JPanel> flPanels=null; //each panel corresponds to one flight,
                                              // includes a checkbox and several labels
+  public ArrayList<String> panelFlIds =null; //identifiers of flights represented in the panels
   
   protected JPanel hlPanel=null; //highlighted panel
   
@@ -131,20 +132,91 @@ public class SelectedFlightsInfoShow extends JPanel
       flCB.clear();
     if (svLabels!=null)
       svLabels.clear();
+    if (flPanels!=null)
+      flPanels.clear();
+    if (panelFlIds !=null)
+      panelFlIds.clear();
+
     if (sectors!=null && selectedFlIds!=null && !selectedFlIds.isEmpty()) {
-      boolean shown[]=(shownFlIds==null || shownFlIds.isEmpty())?null:new boolean[selectedFlIds.size()];
+      for (int i=0; i<selectedFlIds.size(); i++) {
+        ArrayList<FlightInSector> seq=sectors.getSectorVisitSequence(selectedFlIds.get(i));
+        if (seq==null || seq.isEmpty())
+          continue;
+        if (flCB==null)
+          flCB=new ArrayList<JCheckBox>(50);
+        if (svLabels==null)
+          svLabels=new ArrayList<JLabel>(300);
+        if (flPanels==null)
+          flPanels=new ArrayList<JPanel>(300);
+    
+        JPanel pan=new JPanel();
+        flPanels.add(pan);
+        pan.setLayout(new BoxLayout(pan,BoxLayout.Y_AXIS));
+    
+        JCheckBox cb=new JCheckBox(seq.get(0).flightId,true);
+        cb.addItemListener(this);
+        cb.setBackground(cbBkgColor);
+        flCB.add(cb);
+        pan.add(cb);
+        pan.add(Box.createRigidArea(new Dimension(0, 5)));
+    
+        boolean passedFocusSector=false;
+        for (int j=0; j<seq.size(); j++) {
+          FlightInSector f=seq.get(j);
+          JLabel lab=new JLabel(f.sectorId+": "+f.entryTime+".."+f.exitTime);
+          if (f.sectorId.equals(focusSectorId)) {
+            lab.setForeground(SectorShowCanvas.focusSectorColor);
+            passedFocusSector=true;
+          }
+          else
+            if (!passedFocusSector && fromSectorIds!=null && fromSectorIds.contains(f.sectorId))
+              lab.setForeground(SectorShowCanvas.fromSectorColor);
+            else
+              if (passedFocusSector && toSectorIds!=null && toSectorIds.contains(f.sectorId))
+                lab.setForeground(SectorShowCanvas.toSectorColor);
+          svLabels.add(lab);
+          pan.add(lab);
+          lab.addMouseListener(this);
+          pan.add(Box.createRigidArea(new Dimension(0, 3)));
+        }
+        add(pan);
+        add(Box.createRigidArea(new Dimension(0, 3)));
+        if (panelFlIds ==null)
+          panelFlIds =new ArrayList(100);
+        panelFlIds.add(selectedFlIds.get(i));
+      }
+    }
+    Dimension pSize=getPreferredSize();
+    if (isShowing()) {
+      invalidate();
+      validate();
+      setSize(Math.max(pSize.width,10),Math.max(pSize.height,50));
+      repaint();
+    }
+  }
+
+  protected void makeInteriorOld() {
+    removeAll();
+    popupMenu=null;
+    hlPanel=null;
+    if (flCB!=null)
+      flCB.clear();
+    if (svLabels!=null)
+      svLabels.clear();
+    if (sectors!=null && selectedFlIds!=null && !selectedFlIds.isEmpty()) {
+      boolean shown[]=(panelFlIds ==null || panelFlIds.isEmpty())?null:new boolean[selectedFlIds.size()];
       if (shown!=null) {
         for (int i=0; i<shown.length; i++)
           shown[i]=false;
-        for (int i=shownFlIds.size()-1; i>=0; i--) {
-          int idx=selectedFlIds.indexOf(shownFlIds.get(i));
+        for (int i = panelFlIds.size()-1; i>=0; i--) {
+          int idx=selectedFlIds.indexOf(panelFlIds.get(i));
           if (idx>=0) {
             shown[idx]=true;
             JPanel pan=flPanels.get(i);
             pan.setBackground(this.getBackground());
             add(pan);
             add(Box.createRigidArea(new Dimension(0, 3)));
-            ArrayList<FlightInSector> seq=sectors.getSectorVisitSequence(shownFlIds.get(i));
+            ArrayList<FlightInSector> seq=sectors.getSectorVisitSequence(panelFlIds.get(i));
             int lIdx=-1;
             boolean passedFocusSector=false;
             for (int j=0; j<pan.getComponentCount(); j++)
@@ -181,7 +253,7 @@ public class SelectedFlightsInfoShow extends JPanel
           }
           else {
             flPanels.remove(i);
-            shownFlIds.remove(i);
+            panelFlIds.remove(i);
           }
         }
       }
@@ -229,16 +301,16 @@ public class SelectedFlightsInfoShow extends JPanel
           }
           add(pan);
           add(Box.createRigidArea(new Dimension(0, 3)));
-          if (shownFlIds==null)
-            shownFlIds=new ArrayList(100);
-          shownFlIds.add(selectedFlIds.get(i));
+          if (panelFlIds ==null)
+            panelFlIds =new ArrayList(100);
+          panelFlIds.add(selectedFlIds.get(i));
         }
     }
     else {
       if (flPanels!=null)
         flPanels.clear();
-      if (shownFlIds!=null)
-        shownFlIds.clear();
+      if (panelFlIds !=null)
+        panelFlIds.clear();
     }
     Dimension pSize=getPreferredSize();
     if (isShowing()) {
@@ -248,6 +320,7 @@ public class SelectedFlightsInfoShow extends JPanel
       repaint();
     }
   }
+  
   public void itemStateChanged(ItemEvent e) {
     if (e.getSource() instanceof JCheckBox) {
       JCheckBox cb=(JCheckBox)e.getSource();
@@ -285,9 +358,9 @@ public class SelectedFlightsInfoShow extends JPanel
         }
         if (popupMenu ==null) {
           popupMenu = new JPopupMenu();
-          popupMenu.add("Flight " + shownFlIds.get(pIdx));
+          popupMenu.add("Flight " + panelFlIds.get(pIdx));
           popupItem = new JCheckBoxMenuItem("Show whole path");
-          popupItem.setActionCommand(shownFlIds.get(pIdx));
+          popupItem.setActionCommand(panelFlIds.get(pIdx));
           popupItem.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -301,12 +374,12 @@ public class SelectedFlightsInfoShow extends JPanel
           popupMenu.add(popupItem);
         }
         else {
-          if (!popupItem.getActionCommand().equals(shownFlIds.get(pIdx))) {
+          if (!popupItem.getActionCommand().equals(panelFlIds.get(pIdx))) {
             popupItem.setEnabled(false);
             popupItem.setState(false);
-            popupItem.setActionCommand(shownFlIds.get(pIdx));
+            popupItem.setActionCommand(panelFlIds.get(pIdx));
             popupItem.setEnabled(true);
-            ((JMenuItem) popupMenu.getComponent(0)).setText("Flight " + shownFlIds.get(pIdx));
+            ((JMenuItem) popupMenu.getComponent(0)).setText("Flight " + panelFlIds.get(pIdx));
           }
         }
         popupMenu.show(this,p.x,p.y);
@@ -338,7 +411,7 @@ public class SelectedFlightsInfoShow extends JPanel
         if (pan.equals(flPanels.get(i)))
           pIdx=i;
       if (pIdx>=0)
-        sendActionEvent("dehighlight_object:"+shownFlIds.get(pIdx));
+        sendActionEvent("dehighlight_object:"+ panelFlIds.get(pIdx));
       pan.setBackground(getBackground());
       pan.repaint();
     }
@@ -358,7 +431,7 @@ public class SelectedFlightsInfoShow extends JPanel
       else {
         JPanel pan=flPanels.get(pIdx);
         if (!pan.equals(hlPanel)) {
-          sendActionEvent("highlight_object:"+shownFlIds.get(pIdx));
+          sendActionEvent("highlight_object:"+ panelFlIds.get(pIdx));
           clearPanelHighlighting();
           hlPanel=pan;
           pan.setBackground(Color.pink);

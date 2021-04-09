@@ -671,6 +671,29 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     paintComponent(getGraphics());
   }
   
+  public void sortSelectedObjects() {
+    if (selectedObjIds==null || selectedObjIds.size()<2)
+      return;
+    ArrayList sorted=new ArrayList(selectedObjIds.size());
+    if (sInFocus!=null)
+      for (int i=0; i<sInFocus.sortedFlights.size(); i++) {
+        if (selectedObjIds.contains(sInFocus.sortedFlights.get(i).flightId))
+          sorted.add(sInFocus.sortedFlights.get(i).flightId);
+      }
+    synchronized (selectedObjIds) {
+      if (sorted.size() == selectedObjIds.size()) {
+        selectedObjIds = sorted;
+        return;
+      }
+    }
+    for (int i=0; i<selectedObjIds.size(); i++)
+      if (!sorted.contains(selectedObjIds.get(i)))
+        sorted.add(selectedObjIds.get(i));
+    synchronized (selectedObjIds) {
+      selectedObjIds = sorted;
+    }
+  }
+  
   public ArrayList<String> getSelectedObjectIds() {
     return selectedObjIds;
   }
@@ -943,13 +966,16 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
               }
             }
           if (!selection_Valid && showOnlySelectedFlights)
-            off_Valid=false;
+            off_Valid = false;
         }
-        sendActionEvent("object_selection");
+        if (!selection_Valid) {
+          sortSelectedObjects();
+          sendActionEvent("object_selection");
+        }
+        redraw();
       }
       dragX0=-1; dragY0=-1;
       dragged=false;
-      redraw();
     }
     else {
       dragX0=-1; dragY0=-1;
@@ -964,6 +990,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
             selection_Valid=false;
             if (showOnlySelectedFlights)
               off_Valid=false;
+            sortSelectedObjects();
             redraw();
             sendActionEvent("object_selection");
           }
@@ -972,6 +999,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
             selection_Valid=false;
             if (showOnlySelectedFlights)
               off_Valid=false;
+            sortSelectedObjects();
             redraw();
             sendActionEvent("object_selection");
           }
