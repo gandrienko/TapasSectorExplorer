@@ -127,10 +127,10 @@ public class OneSectorData {
           continue;
         int m1 = f.entryTime.getHour() * 60 + f.entryTime.getMinute(),
             m2 = f.exitTime.getHour() * 60 + f.exitTime.getMinute();
-        int idx1 = (m1-59)/tStep+1, idx2 = m2/tStep;
+        int idx1 = (m1-60)/tStep+1, idx2 = m2/tStep;
         if (idx1<0 || idx2<idx1)
           continue;
-        for (int j = Math.max(0,idx1); j < idx2 && j < counts.length; j++)
+        for (int j = Math.max(0,idx1); j <= idx2 && j < counts.length; j++)
           ++counts[j];
         if (repeatedVisits!=null && repeatedVisits.contains(f.flightId) &&
                 !done.contains(f.flightId)){
@@ -138,10 +138,10 @@ public class OneSectorData {
           for (int k=1; k<visits.length; k++) {
             m1 = visits[k].entryTime.getHour() * 60 + visits[k].entryTime.getMinute();
             m2 = visits[k].exitTime.getHour() * 60 + visits[k].exitTime.getMinute();
-            int nextIdx1 = Math.max((m1-59)/tStep+1, idx2+1), nextIdx2 = m2/ tStep;
+            int nextIdx1 = Math.max((m1-60)/tStep+1, idx2+1), nextIdx2 = m2/ tStep;
             if (nextIdx2<nextIdx1) //already counted
               continue;
-            for (int j = Math.max(0,nextIdx1); j < nextIdx2 && j < counts.length; j++)
+            for (int j = Math.max(0,nextIdx1); j <= nextIdx2 && j < counts.length; j++)
               ++counts[j];
             idx2=nextIdx2;
           }
@@ -181,8 +181,8 @@ public class OneSectorData {
         if (done!=null && done.contains(f.flightId))
           continue;
         int m=f.entryTime.getHour()*60+f.entryTime.getMinute();
-        int idx1=(m-59)/tStep+1, idx2=m/tStep;
-        for (int j=Math.max(0,idx1); j<idx2 && j<counts.length; j++)
+        int idx1=(m-60)/tStep+1, idx2=m/tStep;
+        for (int j=Math.max(0,idx1); j<=idx2 && j<counts.length; j++)
           ++counts[j];
         if (ignoreReEntries &&
                 repeatedVisits!=null && repeatedVisits.contains(f.flightId) &&
@@ -190,10 +190,10 @@ public class OneSectorData {
           FlightInSector visits[]=getAllVisits(f.flightId);
           for (int k=1; k<visits.length; k++) {
             m = visits[k].entryTime.getHour() * 60 + visits[k].entryTime.getMinute();
-            int nextIdx1 = (m-59)/tStep+1, nextIdx2 = m/tStep;
+            int nextIdx1 = (m-60)/tStep+1, nextIdx2 = m/tStep;
             if (nextIdx2<=idx2) //already counted
               continue;
-            for (int j = Math.max(idx2+1,nextIdx1); j < nextIdx2 && j < counts.length; j++)
+            for (int j = Math.max(idx2+1,nextIdx1); j <= nextIdx2 && j < counts.length; j++)
               ++counts[j];
             idx2=nextIdx2;
           }

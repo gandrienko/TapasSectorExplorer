@@ -873,7 +873,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     clicked=e.getClickCount()==1;
     if (e.getClickCount()==2) {
       int is[]=getSectorIdx(e.getY());
-      if (is==null) {
+      if (is==null || (is!=null && is[0]==0)) {
         if (selectedObjIds!=null && !selectedObjIds.isEmpty()) {
           selectedObjIds.clear();
           selection_Valid=false;
@@ -887,10 +887,12 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       if (is[0]==0)
         return;
       hlIdx = -1;
-      if (is[0]==-1 && is[1]>=0)
-        sendActionEvent("select_sector:"+fromSorted.get(is[1]).sectorId);
-      else
-        sendActionEvent("select_sector:"+toSorted.get(is[1]).sectorId);
+      synchronized (this) {
+        if (is[0] == -1 && is[1] >= 0)
+          sendActionEvent("select_sector:" + fromSorted.get(is[1]).sectorId);
+        else
+          sendActionEvent("select_sector:" + toSorted.get(is[1]).sectorId);
+      }
     }
   }
   
