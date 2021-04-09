@@ -159,7 +159,6 @@ public class SectorShowPanel extends JPanel
     p.add(pp);
     pp.add(new JLabel("Aggregation time step:"));
     chAggrStep=new JComboBox();
-    chAggrStep.addActionListener(this);
     chAggrStep.addItem(new Integer(1));
     chAggrStep.addItem(new Integer(5));
     chAggrStep.addItem(new Integer(10));
@@ -167,10 +166,12 @@ public class SectorShowPanel extends JPanel
     chAggrStep.addItem(new Integer(20));
     chAggrStep.addItem(new Integer(30));
     chAggrStep.addItem(new Integer(60));
+    chAggrStep.setSelectedIndex(4);
+    chAggrStep.addActionListener(this);
     pp.add(chAggrStep);
     pp.add(new JLabel("minutes"));
   
-    cbIgnoreReEntries=new JCheckBox("Ignore re-entries",false);
+    cbIgnoreReEntries=new JCheckBox("Ignore re-entries",true);
     cbIgnoreReEntries.addItemListener(this);
     p.add(cbIgnoreReEntries);
   
@@ -187,7 +188,7 @@ public class SectorShowPanel extends JPanel
     pp.add(chEntriesOrPresence);
     chEntriesOrPresence.addItem("entries");
     chEntriesOrPresence.addItem("presence");
-    chEntriesOrPresence.setSelectedIndex(1);
+    chEntriesOrPresence.setSelectedIndex(0);
     chEntriesOrPresence.addActionListener(this);
     
     canvas=new SectorShowCanvas(sectors);
@@ -341,6 +342,20 @@ public class SectorShowPanel extends JPanel
               timeFocuser.setUpperValue(m);
         }
       }
+      else
+      if (tf.equals(tfPercentExcess)) {
+        float perc=-1;
+        try {
+          perc=Float.parseFloat(tf.getText());
+        } catch (Exception ex) {}
+        if (perc<0) {
+          perc=(canvas==null)?10:canvas.getMinExcessPercent();
+          tf.setText(String.valueOf(perc));
+        }
+        else
+          if (canvas!=null)
+            canvas.setMinExcessPercent(perc);
+      }
     }
     else
     if (ae.getActionCommand().equals("full_time_range"))  {
@@ -364,6 +379,11 @@ public class SectorShowPanel extends JPanel
     if (e.getSource().equals(cbIgnoreReEntries)) {
       if (canvas!=null)
         canvas.setToIgnoreReEntries(cbIgnoreReEntries.isSelected());
+    }
+    else
+    if (e.getSource().equals(cbHighlightExcess))  {
+      if (canvas!=null)
+        canvas.setToHighlightCapExcess(cbHighlightExcess.isSelected());
     }
   }
   
