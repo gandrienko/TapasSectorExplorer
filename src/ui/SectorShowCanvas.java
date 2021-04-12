@@ -8,6 +8,7 @@ import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 
 public class SectorShowCanvas extends JPanel implements MouseListener, MouseMotionListener {
   public static final int secondsInDay =86400, minutesInDay=1440;
@@ -658,11 +659,16 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
                                            BufferedImage.TYPE_INT_ARGB);
     Graphics2D gOff = off_Image_selected.createGraphics();
     gOff.drawImage(off_Image,0,0,null);
+    for (int i=0; i<flightDrawers.length; i++)
+      if (selectedObjIds.contains(flightDrawers[i].flightId))
+        flightDrawers[i].drawSelected(gOff);
+    /*
     for (int i=0; i<selectedObjIds.size(); i++) {
       int idx=getDrawnObjIndex(selectedObjIds.get(i));
       if (idx>=0)
         flightDrawers[idx].drawSelected(gOff);
     }
+     */
     selection_Valid=true;
     g.drawImage(off_Image_selected,0,0,null);
   }
@@ -975,19 +981,22 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
         int x0 = Math.min(e.getX(), dragX0), y0 = Math.min(e.getY(), dragY0);
         int w = Math.abs(e.getX() - dragX0), h = Math.abs(e.getY() - dragY0);
         if (w > 0 && h > 0) {
+          HashSet<String> newSelection=new HashSet<String>(100);
           for (int i = 0; i < flightDrawers.length; i++)
-            if (flightDrawers[i].intersects(x0, y0, w, h)) {
-              if (selectedObjIds == null || !selectedObjIds.contains(flightDrawers[i].flightId)) {
+            if (flightDrawers[i].intersects(x0, y0, w, h))
+              newSelection.add(flightDrawers[i].flightId);
+          if (!newSelection.isEmpty())
+            for (String id:newSelection)
+              if (selectedObjIds == null || !selectedObjIds.contains(id)) {
                 if (selectedObjIds == null)
                   selectedObjIds = new ArrayList<String>(50);
-                selectedObjIds.add(flightDrawers[i].flightId);
+                selectedObjIds.add(id);
                 selection_Valid=false;
               }
               else {
-                selectedObjIds.remove(flightDrawers[i].flightId);
+                selectedObjIds.remove(id);
                 selection_Valid=false;
               }
-            }
           if (!selection_Valid && showOnlySelectedFlights)
             off_Valid = false;
         }
@@ -1004,28 +1013,42 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       dragX0=-1; dragY0=-1;
       if (clicked) {
         clicked = false;
-        int fIdx = getFlightIdxAtPosition(e.getX(), e.getY());
-        if (fIdx >= 0)
-          if (selectedObjIds == null || !selectedObjIds.contains(flightDrawers[fIdx].flightId)) {
-            if (selectedObjIds == null)
-              selectedObjIds = new ArrayList<String>(50);
-            selectedObjIds.add(flightDrawers[fIdx].flightId);
-            selection_Valid=false;
-            if (showOnlySelectedFlights)
-              off_Valid=false;
-            sortSelectedObjects();
-            redraw();
-            sendActionEvent("object_selection");
+        if (e.getButton()>MouseEvent.BUTTON1) {
+          int is[]=getSectorIdx(e.getY());
+          if (is==null)
+            return;
+          OneSectorData sector=(is[0]==0)?sInFocus:(is[0]<0)?fromSorted.get(is[1]):toSorted.get(is[1]);
+          // find time interval
+          int m=getMinuteOfDayForXPos(e.getX()-tMarg,tWidth);
+          if (m<0 || m>=minutesInDay)
+            return;
+          int t1=m/tStepAggregates, t2=t1+tStepAggregates;
+        }
+        else {
+          int fIdx = getFlightIdxAtPosition(e.getX(), e.getY());
+          if (fIdx >= 0) {
+            if (selectedObjIds == null || !selectedObjIds.contains(flightDrawers[fIdx].flightId)) {
+              if (selectedObjIds == null)
+                selectedObjIds = new ArrayList<String>(50);
+              selectedObjIds.add(flightDrawers[fIdx].flightId);
+              selection_Valid = false;
+              if (showOnlySelectedFlights)
+                off_Valid = false;
+              sortSelectedObjects();
+              redraw();
+              sendActionEvent("object_selection");
+            }
+            else {
+              selectedObjIds.remove(flightDrawers[fIdx].flightId);
+              selection_Valid = false;
+              if (showOnlySelectedFlights)
+                off_Valid = false;
+              sortSelectedObjects();
+              redraw();
+              sendActionEvent("object_selection");
+            }
           }
-          else {
-            selectedObjIds.remove(flightDrawers[fIdx].flightId);
-            selection_Valid=false;
-            if (showOnlySelectedFlights)
-              off_Valid=false;
-            sortSelectedObjects();
-            redraw();
-            sendActionEvent("object_selection");
-          }
+        }
       }
     }
   }
