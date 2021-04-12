@@ -16,13 +16,10 @@ import java.util.ArrayList;
 public class SectorShowPanel extends JPanel
     implements ActionListener, ItemListener, ChangeListener {
   /**
-   * Information about all sectors
+   * The canvas(es) with the visual representation. There may be several canvases
+   * representing different scenarios
    */
-  public SectorSet sectors=null;
-  /**
-   * The canvas with the visual representation
-   */
-  protected SectorShowCanvas canvas=null;
+  protected SectorShowCanvas canvas[]=null;
   /**
    * A panel with information about selected flights
    */
@@ -75,9 +72,13 @@ public class SectorShowPanel extends JPanel
    */
   protected JLabel labSelFlights=null;
   
-  public SectorShowPanel(SectorSet sectors) {
+  /**
+   * Each SectorSet corresponds to one scenario
+   * @param scenarios - sector sets corresponding to different scenarios
+   */
+  public SectorShowPanel(SectorSet scenarios[]) {
     super();
-    if (sectors==null || sectors.getNSectors()<1)
+    if (scenarios==null || scenarios.length<1 || scenarios[0]==null || scenarios[0].getNSectors()<1)
       return;
     
     JPanel mainP=new JPanel(new BorderLayout());
@@ -85,7 +86,7 @@ public class SectorShowPanel extends JPanel
     JPanel bp=new JPanel(new GridLayout(0,1));
     mainP.add(bp,BorderLayout.SOUTH);
 
-    sortedSectors=sectors.getSectorsSortedByIdentifiers();
+    sortedSectors=SectorSet.getSectorList(scenarios);
     chSectors=new JComboBox();
     chSectors.addActionListener(this);
     
@@ -187,15 +188,25 @@ public class SectorShowPanel extends JPanel
     chEntriesOrPresence.setSelectedIndex(0);
     chEntriesOrPresence.addActionListener(this);
     
-    canvas=new SectorShowCanvas(sectors);
-    canvas.setFocusSector(sortedSectors.get(maxIdx).sectorId);
-    canvas.addActionListener(this);
-    chAggrStep.setSelectedItem(Integer.toString(canvas.getAggregationTimeStep()));
-    mainP.add(canvas,BorderLayout.CENTER);
+    canvas=new SectorShowCanvas[scenarios.length];
+    JTabbedPane tabbedPane = (scenarios.length>1)?new JTabbedPane():null;
+    if (tabbedPane!=null)
+      mainP.add(tabbedPane,BorderLayout.CENTER);
+    for (int i=0; i<scenarios.length; i++) {
+      canvas[i]=new SectorShowCanvas(scenarios[i]);
+      canvas[i].setFocusSector(sortedSectors.get(maxIdx).sectorId);
+      canvas[i].addActionListener(this);
+      if (i==0)
+        chAggrStep.setSelectedItem(Integer.toString(canvas[i].getAggregationTimeStep()));
+      if (tabbedPane!=null)
+        tabbedPane.addTab("scenario "+(i+1),canvas[i]);
+      else
+        mainP.add(canvas[i], BorderLayout.CENTER);
+    }
   
-    flInfoPanel=new SelectedFlightsInfoShow(sectors);
+    flInfoPanel=new SelectedFlightsInfoShow(scenarios[0]);
     flInfoPanel.addActionListener(this);
-    flInfoPanel.setCurrentSectors(canvas.getFocusSectorId(),canvas.getFromSectorIds(),canvas.getToSectorIds());
+    flInfoPanel.setCurrentSectors(canvas[0].getFocusSectorId(),canvas[0].getFromSectorIds(),canvas[0].getToSectorIds());
     JScrollPane scp=new JScrollPane(flInfoPanel);
     
     p=new JPanel(new BorderLayout());
@@ -207,7 +218,7 @@ public class SectorShowPanel extends JPanel
     JSplitPane spl=new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,mainP,p);
     setLayout(new BorderLayout());
     add(spl,BorderLayout.CENTER);
-    spl.setDividerLocation(canvas.getPreferredSize().width);
+    spl.setDividerLocation(canvas[0].getPreferredSize().width);
   
     sectorSelections=new ArrayList<Integer>(100);
     sectorSelections.add(maxIdx);
@@ -230,12 +241,14 @@ public class SectorShowPanel extends JPanel
     else
     if (ae.getSource().equals(chAggrStep)) {
       if (canvas!=null)
-        canvas.setAggregationTimeStep((Integer)chAggrStep.getSelectedItem());
+        for (int i=0; i<canvas.length; i++)
+          canvas[i].setAggregationTimeStep((Integer)chAggrStep.getSelectedItem());
     }
     else
     if (ae.getSource().equals(chEntriesOrPresence)) {
       if (canvas!=null)
-        canvas.setToCountEntries(chEntriesOrPresence.getSelectedIndex()==0);
+        for (int i=0; i<canvas.length; i++)
+          canvas[i].setToCountEntries(chEntriesOrPresence.getSelectedIndex()==0);
     }
     else
     if (ae.getSource().equals(chSectors) && canvas!=null) {
@@ -245,30 +258,34 @@ public class SectorShowPanel extends JPanel
         if (sectorSelections.size()==2)
           backButton.setEnabled(true);
       }
-      canvas.setFocusSector(sortedSectors.get(selIdx).sectorId);
-      flInfoPanel.setCurrentSectors(canvas.getFocusSectorId(),canvas.getFromSectorIds(),canvas.getToSectorIds());
-      flInfoPanel.setSelectedFlights(canvas.getSelectedObjectIds(),canvas.getSelectedVisibleObjectIds());
+      for (int i=0; i<canvas.length; i++)
+        canvas[i].setFocusSector(sortedSectors.get(selIdx).sectorId);
+      flInfoPanel.setCurrentSectors(canvas[0].getFocusSectorId(),canvas[0].getFromSectorIds(),canvas[0].getToSectorIds());
+      flInfoPanel.setSelectedFlights(canvas[0].getSelectedObjectIds(),canvas[0].getSelectedVisibleObjectIds());
     }
     else
-    if (ae.getSource().equals(canvas) || ae.getSource().equals(flInfoPanel)) {
+    if ((ae.getSource() instanceof SectorShowCanvas) || ae.getSource().equals(flInfoPanel)) {
       String cmd=ae.getActionCommand();
       if (cmd.equals("object_selection")) {
-        flInfoPanel.setSelectedFlights(canvas.getSelectedObjectIds(),canvas.getSelectedVisibleObjectIds());
+        flInfoPanel.setSelectedFlights(canvas[0].getSelectedObjectIds(),canvas[0].getSelectedVisibleObjectIds());
       }
       else
       if (cmd.startsWith("deselect_object:"))  {
         String oId=cmd.substring(16);
-        canvas.deselectObject(oId);
+        for (int i=0; i<canvas.length; i++)
+          canvas[i].deselectObject(oId);
       }
       else
       if (cmd.startsWith("highlight_object:"))  {
         String oId=cmd.substring(17);
-        canvas.highlightObject(oId);
+        for (int i=0; i<canvas.length; i++)
+          canvas[i].highlightObject(oId);
       }
       else
       if (cmd.startsWith("dehighlight_object:"))  {
         String oId=cmd.substring(19);
-        canvas.dehighlightObject(oId);
+        for (int i=0; i<canvas.length; i++)
+          canvas[i].dehighlightObject(oId);
       }
       else
       if (cmd.startsWith("select_sector:")) {
@@ -283,12 +300,14 @@ public class SectorShowPanel extends JPanel
       else
       if (cmd.startsWith("show_path:")) {
         if (canvas!=null)
-          canvas.setFocusFlight(cmd.substring(10));
+          for (int i=0; i<canvas.length; i++)
+            canvas[i].setFocusFlight(cmd.substring(10));
       }
       else
       if (cmd.startsWith("cancel_path_show:"))  {
         if (canvas!=null)
-          canvas.setFocusFlight(null);
+          for (int i=0; i<canvas.length; i++)
+            canvas[i].setFocusFlight(null);
       }
     }
     else
@@ -330,12 +349,13 @@ public class SectorShowPanel extends JPanel
           perc=Float.parseFloat(tf.getText());
         } catch (Exception ex) {}
         if (perc<0) {
-          perc=(canvas==null)?10:canvas.getMinExcessPercent();
+          perc=(canvas==null)?10:canvas[0].getMinExcessPercent();
           tf.setText(String.valueOf(perc));
         }
         else
           if (canvas!=null)
-            canvas.setMinExcessPercent(perc);
+            for (int i=0; i<canvas.length; i++)
+              canvas[0].setMinExcessPercent(perc);
       }
     }
     else
@@ -344,7 +364,7 @@ public class SectorShowPanel extends JPanel
         timeFocuser.setFullRange();
     }
     if (canvas!=null) {
-      ArrayList<String> selected = canvas.getSelectedObjectIds(), visible = canvas.getSelectedVisibleObjectIds();
+      ArrayList<String> selected = canvas[0].getSelectedObjectIds(), visible = canvas[0].getSelectedVisibleObjectIds();
       String txt = ((selected == null) ? "0" : Integer.toString(selected.size())) + " flights selected; " +
                        ((visible == null) ? "0" : Integer.toString(visible.size())) + " visible";
       labSelFlights.setText(txt);
@@ -354,17 +374,20 @@ public class SectorShowPanel extends JPanel
   public void itemStateChanged(ItemEvent e) {
     if (e.getSource().equals(cbShowOnlySelected)) {
       if (canvas!=null)
-        canvas.setShowOnlySelectedFlights(cbShowOnlySelected.isSelected());
+        for (int i=0; i<canvas.length; i++)
+          canvas[i].setShowOnlySelectedFlights(cbShowOnlySelected.isSelected());
     }
     else
     if (e.getSource().equals(cbIgnoreReEntries)) {
       if (canvas!=null)
-        canvas.setToIgnoreReEntries(cbIgnoreReEntries.isSelected());
+        for (int i=0; i<canvas.length; i++)
+          canvas[i].setToIgnoreReEntries(cbIgnoreReEntries.isSelected());
     }
     else
     if (e.getSource().equals(cbHighlightExcess))  {
       if (canvas!=null)
-        canvas.setToHighlightCapExcess(cbHighlightExcess.isSelected());
+        for (int i=0; i<canvas.length; i++)
+          canvas[i].setToHighlightCapExcess(cbHighlightExcess.isSelected());
     }
   }
   
@@ -377,7 +400,7 @@ public class SectorShowPanel extends JPanel
     int m1=timeFocuser.getValue(), m2=timeFocuser.getUpperValue();
     if (m2-m1<60) {
       if (canvas!=null)
-        if (m1==canvas.getMinuteStart()) {
+        if (m1==canvas[0].getMinuteStart()) {
           m2=m1+60;
           if (m2>SectorShowCanvas.minutesInDay) {
             m2=SectorShowCanvas.minutesInDay;
@@ -403,7 +426,8 @@ public class SectorShowPanel extends JPanel
     tfTStart.setText(String.format("%02d:%02d",m1/60,m1%60));
     tfTEnd.setText(String.format("%02d:%02d",m2/60,m2%60));
     if (canvas!=null)
-      canvas.setTimeRange(m1,m2);
+      for (int i=0; i<canvas.length; i++)
+        canvas[i].setTimeRange(m1,m2);
     bFullRange.setEnabled(m1>timeFocuser.getMinimum() || m2<timeFocuser.getMaximum());
   }
   

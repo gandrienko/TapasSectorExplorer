@@ -38,16 +38,17 @@ public class Main {
       }
       if (fileNameBaseline==null)
         return;
+
       DataStore baseline=new DataStore();
       System.out.println("Tryng to get baseline data ...");
       if (!baseline.readData(fileNameBaseline))
         return;
       System.out.println("Successfully got baseline data!");
       
-      SectorSet sectors=new SectorSet();
+      SectorSet sectorsBaseline=new SectorSet();
       int nFlights=0, nFailed=0;
       for (int i=0; i<baseline.data.size(); i++) {
-        if (sectors.addFlightData(baseline.data.elementAt(i), baseline.attrNames))
+        if (sectorsBaseline.addFlightData(baseline.data.elementAt(i), baseline.attrNames))
           ++nFlights;
         else
           ++nFailed;
@@ -55,12 +56,45 @@ public class Main {
       System.out.println(nFlights+" successfully added; "+nFailed+" failed.");
       if (nFlights<1)
         return;
-      ArrayList<OneSectorData> sortedSectors=sectors.getSectorsSortedByNFlights();
-      if (sortedSectors==null) {
+      if (sectorsBaseline.getNSectors()<1) {
         System.out.println("Failed to retrieve flight data!");
         return;
       }
-      System.out.println("Got data about "+sortedSectors.size()+" sectors!");
+      System.out.println("Got data about "+sectorsBaseline.getNSectors()+" sectors!");
+      LocalTime range[]=sectorsBaseline.getTimeRange();
+      System.out.println("Overall time range: "+range[0]+".."+range[1]);
+  
+      SectorSet sectorsSolution=null;
+      data_manage.DataStore solution=new data_manage.DataStore();
+      System.out.println("Tryng to get solution data ...");
+      if (solution.readData(fileNameSolution)) {
+        System.out.println("Successfully got solution data!");
+  
+        sectorsSolution=new SectorSet();
+        nFlights=0; nFailed=0;
+        for (int i=0; i<solution.data.size(); i++) {
+          if (sectorsSolution.addFlightData(solution.data.elementAt(i), solution.attrNames))
+            ++nFlights;
+          else
+            ++nFailed;
+        }
+        System.out.println(nFlights+" successfully added; "+nFailed+" failed.");
+        if (nFlights<1)
+          return;
+        if (sectorsSolution.getNSectors()<1) {
+          System.out.println("Failed to retrieve flight data for the solution!");
+          sectorsSolution=null;
+        }
+        else {
+          System.out.println("Got data about " + sectorsSolution.getNSectors() + " sectors for the solution!");
+          range = sectorsSolution.getTimeRange();
+          System.out.println("Overall time range for the solution: " + range[0] + ".." + range[1]);
+        }
+      }
+      else {
+        System.out.println("Failed to get solution data!");
+      }
+      
       if (fileNameCapacities!=null) {
         System.out.println("Reading file with sector capacities...");
         DataStore capData=new DataStore();
@@ -68,32 +102,20 @@ public class Main {
           System.out.println("Failed to get capacity data!");
         else {
           System.out.println("Got "+capData.data.size()+" data records; trying to get capacities...");
-          sectors.getSectorCapacities(capData);
+          sectorsBaseline.getSectorCapacities(capData);
+          if (sectorsSolution!=null)
+            sectorsSolution.getSectorCapacities(capData);
         }
       }
-      /*
-      for (int i=0; i<sortedSectors.size(); i++) {
-        OneSectorData s=sortedSectors.get(i);
-        System.out.println(s.sectorId + " : " +s.getNFlights() + " flights; time range: "+
-                              s.tFirst+".."+s.tLast);
-      }
-      */
-      LocalTime range[]=sectors.getTimeRange();
-      System.out.println("Overall time range: "+range[0]+".."+range[1]);
       
-      /*
-      data_manage.DataStore solution=new data_manage.DataStore();
-      System.out.println("Tryng to get solution data ...");
-      if (solution.readData(fileNameSolution)) {
-        System.out.println("Successfully got solution data!");
-      }
-      else {
-        System.out.println("Failed to get solution data!");
-      }
-      */
+      SectorSet scenarios[]=new SectorSet[(sectorsSolution==null)?1:2];
+      scenarios[0]=sectorsBaseline;
+      if (sectorsSolution!=null)
+        scenarios[1]=sectorsSolution;
+      
       JFrame frame = new JFrame("TAPAS Sector Explorer");
       frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-      SectorShowPanel sectorShow=new SectorShowPanel(sectors);
+      SectorShowPanel sectorShow=new SectorShowPanel(scenarios);
       frame.getContentPane().add(sectorShow, BorderLayout.CENTER);
       //Display the window.
       frame.pack();

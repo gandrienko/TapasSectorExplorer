@@ -1,10 +1,7 @@
 package data_manage;
 
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.TreeMap;
+import java.util.*;
 
 /**
  * Contains data about multiple sectors
@@ -157,5 +154,44 @@ public class SectorSet {
       }
     System.out.println("Got capacities of "+nGot+" sectors!");
     return nGot>0;
+  }
+  
+  /**
+   * Returns a full set of sectors occurring in all scenarios.
+   * For each sector, finds the maximal N of visiting flights.
+   * @param scenarios - scenarios from which to extract the sectors
+   * @return a treemap where the sector identifiers are the keys, and the values are
+   *   the maximal counts of the flights in the sectors.
+   */
+  public static TreeMap<String,OneSectorData> getAllSectors(SectorSet scenarios[]) {
+    if (scenarios==null || scenarios.length<1)
+      return null;
+    TreeMap<String,OneSectorData> result=null;
+    for (int i=0; i<scenarios.length; i++)
+      if (scenarios[i]!=null && scenarios[i].sectors!=null)
+        for (Map.Entry<String,OneSectorData> entry:scenarios[i].sectors.entrySet()) {
+          String sectorId=entry.getKey();
+          int nFlights=entry.getValue().getNFlights();
+          if (result==null)
+            result=new TreeMap<String,OneSectorData>();
+          if (!result.containsKey(sectorId) || result.get(sectorId).getNFlights()<nFlights)
+            result.put(sectorId,entry.getValue());
+        }
+    return result;
+  }
+  
+  /**
+   * Returns the list of all sectors ordered by their identifiers
+   * @param scenarios
+   * @return  - scenarios from which to extract the sectors
+   */
+  public static ArrayList<OneSectorData> getSectorList (SectorSet scenarios[]) {
+    TreeMap<String,OneSectorData> all=getAllSectors(scenarios);
+    if (all==null || all.isEmpty())
+      return null;
+    ArrayList<OneSectorData> list=new ArrayList<OneSectorData>(all.size());
+    for (Map.Entry<String,OneSectorData> entry:all.entrySet())
+      list.add(entry.getValue());
+    return list;
   }
 }
