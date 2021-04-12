@@ -74,10 +74,6 @@ public class SectorShowPanel extends JPanel
    * Shows how many flights are currently selected
    */
   protected JLabel labSelFlights=null;
-  /**
-   * Whether to list all selected flights or only visible
-   */
-  protected JRadioButton rbListAll=null, rbListVisible=null;
   
   public SectorShowPanel(SectorSet sectors) {
     super();
@@ -204,24 +200,9 @@ public class SectorShowPanel extends JPanel
     
     p=new JPanel(new BorderLayout());
     p.add(scp,BorderLayout.CENTER);
-    bp=new JPanel(new GridLayout(0,1));
-    p.add(bp,BorderLayout.NORTH);
     
     labSelFlights=new JLabel("0 flights selected",JLabel.CENTER);
-    bp.add(labSelFlights);
-    
-    rbListVisible=new JRadioButton("visible",true);
-    rbListVisible.addActionListener(this);
-    rbListAll=new JRadioButton("all",false);
-    rbListAll.addActionListener(this);
-    ButtonGroup g=new ButtonGroup();
-    g.add(rbListVisible);
-    g.add(rbListAll);
-    pp=new JPanel(new FlowLayout(FlowLayout.CENTER,5,0));
-    pp.add(new JLabel("List"));
-    pp.add(rbListVisible);
-    pp.add(rbListAll);
-    bp.add(pp);
+    p.add(labSelFlights,BorderLayout.NORTH);
     
     JSplitPane spl=new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,mainP,p);
     setLayout(new BorderLayout());
@@ -266,13 +247,13 @@ public class SectorShowPanel extends JPanel
       }
       canvas.setFocusSector(sortedSectors.get(selIdx).sectorId);
       flInfoPanel.setCurrentSectors(canvas.getFocusSectorId(),canvas.getFromSectorIds(),canvas.getToSectorIds());
-      flInfoPanel.setSelectedFlights(canvas.getSelectedVisibleObjectIds());
+      flInfoPanel.setSelectedFlights(canvas.getSelectedObjectIds(),canvas.getSelectedVisibleObjectIds());
     }
     else
     if (ae.getSource().equals(canvas) || ae.getSource().equals(flInfoPanel)) {
       String cmd=ae.getActionCommand();
       if (cmd.equals("object_selection")) {
-        flInfoPanel.setSelectedFlights(canvas.getSelectedVisibleObjectIds());
+        flInfoPanel.setSelectedFlights(canvas.getSelectedObjectIds(),canvas.getSelectedVisibleObjectIds());
       }
       else
       if (cmd.startsWith("deselect_object:"))  {
