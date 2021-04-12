@@ -19,7 +19,7 @@ public class SectorShowPanel extends JPanel
    * The canvas(es) with the visual representation. There may be several canvases
    * representing different scenarios
    */
-  protected SectorShowCanvas canvas[]=null;
+  protected SectorShowCanvas sectorsFlightsViews[]=null;
   /**
    * A panel with information about selected flights
    */
@@ -188,25 +188,26 @@ public class SectorShowPanel extends JPanel
     chEntriesOrPresence.setSelectedIndex(0);
     chEntriesOrPresence.addActionListener(this);
     
-    canvas=new SectorShowCanvas[scenarios.length];
+    sectorsFlightsViews =new SectorShowCanvas[scenarios.length];
     JTabbedPane tabbedPane = (scenarios.length>1)?new JTabbedPane():null;
     if (tabbedPane!=null)
       mainP.add(tabbedPane,BorderLayout.CENTER);
     for (int i=0; i<scenarios.length; i++) {
-      canvas[i]=new SectorShowCanvas(scenarios[i]);
-      canvas[i].setFocusSector(sortedSectors.get(maxIdx).sectorId);
-      canvas[i].addActionListener(this);
+      sectorsFlightsViews[i]=new SectorShowCanvas(scenarios[i]);
+      sectorsFlightsViews[i].setFocusSector(sortedSectors.get(maxIdx).sectorId);
+      sectorsFlightsViews[i].addActionListener(this);
       if (i==0)
-        chAggrStep.setSelectedItem(Integer.toString(canvas[i].getAggregationTimeStep()));
+        chAggrStep.setSelectedItem(Integer.toString(sectorsFlightsViews[i].getAggregationTimeStep()));
       if (tabbedPane!=null)
-        tabbedPane.addTab("scenario "+(i+1),canvas[i]);
+        tabbedPane.addTab("scenario "+(i+1), sectorsFlightsViews[i]);
       else
-        mainP.add(canvas[i], BorderLayout.CENTER);
+        mainP.add(sectorsFlightsViews[i], BorderLayout.CENTER);
     }
   
     flInfoPanel=new SelectedFlightsInfoShow(scenarios[0]);
     flInfoPanel.addActionListener(this);
-    flInfoPanel.setCurrentSectors(canvas[0].getFocusSectorId(),canvas[0].getFromSectorIds(),canvas[0].getToSectorIds());
+    flInfoPanel.setCurrentSectors(sectorsFlightsViews[0].getFocusSectorId(),
+        sectorsFlightsViews[0].getFromSectorIds(), sectorsFlightsViews[0].getToSectorIds());
     JScrollPane scp=new JScrollPane(flInfoPanel);
     
     p=new JPanel(new BorderLayout());
@@ -218,7 +219,7 @@ public class SectorShowPanel extends JPanel
     JSplitPane spl=new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,mainP,p);
     setLayout(new BorderLayout());
     add(spl,BorderLayout.CENTER);
-    spl.setDividerLocation(canvas[0].getPreferredSize().width);
+    spl.setDividerLocation(sectorsFlightsViews[0].getPreferredSize().width);
   
     sectorSelections=new ArrayList<Integer>(100);
     sectorSelections.add(maxIdx);
@@ -226,8 +227,20 @@ public class SectorShowPanel extends JPanel
         //canvas.getPreferredSize().height+50));
   }
   
+  public SectorShowCanvas getVisibleCanvas() {
+    if (sectorsFlightsViews==null || sectorsFlightsViews.length<1)
+      return null;
+    if (sectorsFlightsViews.length<2)
+      return sectorsFlightsViews[0];
+    for (int i=0; i<sectorsFlightsViews.length; i++)
+      if (sectorsFlightsViews[i].isShowing())
+        return sectorsFlightsViews[i];
+    return  sectorsFlightsViews[0];
+  }
+  
   
   public void actionPerformed (ActionEvent ae) {
+    SectorShowCanvas shownCanvas=getVisibleCanvas();
     if (ae.getSource().equals(backButton)) {
       if (sectorSelections.size()>1) {
         sectorSelections.remove(sectorSelections.size()-1);
@@ -240,52 +253,62 @@ public class SectorShowPanel extends JPanel
     }
     else
     if (ae.getSource().equals(chAggrStep)) {
-      if (canvas!=null)
-        for (int i=0; i<canvas.length; i++)
-          canvas[i].setAggregationTimeStep((Integer)chAggrStep.getSelectedItem());
+      if (sectorsFlightsViews !=null)
+        for (int i = 0; i< sectorsFlightsViews.length; i++)
+          sectorsFlightsViews[i].setAggregationTimeStep((Integer)chAggrStep.getSelectedItem());
     }
     else
     if (ae.getSource().equals(chEntriesOrPresence)) {
-      if (canvas!=null)
-        for (int i=0; i<canvas.length; i++)
-          canvas[i].setToCountEntries(chEntriesOrPresence.getSelectedIndex()==0);
+      if (sectorsFlightsViews !=null)
+        for (int i = 0; i< sectorsFlightsViews.length; i++)
+          sectorsFlightsViews[i].setToCountEntries(chEntriesOrPresence.getSelectedIndex()==0);
     }
     else
-    if (ae.getSource().equals(chSectors) && canvas!=null) {
+    if (ae.getSource().equals(chSectors) && shownCanvas !=null) {
       int selIdx=chSectors.getSelectedIndex();
       if (selIdx!=sectorSelections.get(sectorSelections.size()-1)) {
         sectorSelections.add(selIdx);
         if (sectorSelections.size()==2)
           backButton.setEnabled(true);
       }
-      for (int i=0; i<canvas.length; i++)
-        canvas[i].setFocusSector(sortedSectors.get(selIdx).sectorId);
-      flInfoPanel.setCurrentSectors(canvas[0].getFocusSectorId(),canvas[0].getFromSectorIds(),canvas[0].getToSectorIds());
-      flInfoPanel.setSelectedFlights(canvas[0].getSelectedObjectIds(),canvas[0].getSelectedVisibleObjectIds());
+      for (int i = 0; i< sectorsFlightsViews.length; i++)
+        sectorsFlightsViews[i].setFocusSector(sortedSectors.get(selIdx).sectorId);
+      flInfoPanel.setCurrentSectors(shownCanvas.getFocusSectorId(),
+          shownCanvas.getFromSectorIds(), shownCanvas.getToSectorIds());
+      flInfoPanel.setSelectedFlights(shownCanvas.getSelectedObjectIds(),
+          shownCanvas.getSelectedVisibleObjectIds());
     }
     else
     if ((ae.getSource() instanceof SectorShowCanvas) || ae.getSource().equals(flInfoPanel)) {
       String cmd=ae.getActionCommand();
       if (cmd.equals("object_selection")) {
-        flInfoPanel.setSelectedFlights(canvas[0].getSelectedObjectIds(),canvas[0].getSelectedVisibleObjectIds());
+        SectorShowCanvas canvas=(SectorShowCanvas)ae.getSource();
+        ArrayList<String> fIds=canvas.getSelectedObjectIds();
+        flInfoPanel.setSelectedFlights(fIds, canvas.getSelectedVisibleObjectIds());
+        if (sectorsFlightsViews.length>1)
+          for (int i = 0; i< sectorsFlightsViews.length; i++)
+            if (!canvas.equals(sectorsFlightsViews[i]))
+              sectorsFlightsViews[i].setSelectedObjIds(fIds);
       }
       else
       if (cmd.startsWith("deselect_object:"))  {
         String oId=cmd.substring(16);
-        for (int i=0; i<canvas.length; i++)
-          canvas[i].deselectObject(oId);
+        for (int i = 0; i< sectorsFlightsViews.length; i++)
+          sectorsFlightsViews[i].deselectObject(oId);
       }
       else
       if (cmd.startsWith("highlight_object:"))  {
         String oId=cmd.substring(17);
-        for (int i=0; i<canvas.length; i++)
-          canvas[i].highlightObject(oId);
+        for (int i = 0; i< sectorsFlightsViews.length; i++)
+          if (sectorsFlightsViews[i].isShowing())
+            sectorsFlightsViews[i].highlightObject(oId);
       }
       else
       if (cmd.startsWith("dehighlight_object:"))  {
         String oId=cmd.substring(19);
-        for (int i=0; i<canvas.length; i++)
-          canvas[i].dehighlightObject(oId);
+        for (int i = 0; i< sectorsFlightsViews.length; i++)
+          if (sectorsFlightsViews[i].isShowing())
+            sectorsFlightsViews[i].dehighlightObject(oId);
       }
       else
       if (cmd.startsWith("select_sector:")) {
@@ -299,15 +322,15 @@ public class SectorShowPanel extends JPanel
       }
       else
       if (cmd.startsWith("show_path:")) {
-        if (canvas!=null)
-          for (int i=0; i<canvas.length; i++)
-            canvas[i].setFocusFlight(cmd.substring(10));
+        if (sectorsFlightsViews !=null)
+          for (int i = 0; i< sectorsFlightsViews.length; i++)
+            sectorsFlightsViews[i].setFocusFlight(cmd.substring(10));
       }
       else
       if (cmd.startsWith("cancel_path_show:"))  {
-        if (canvas!=null)
-          for (int i=0; i<canvas.length; i++)
-            canvas[i].setFocusFlight(null);
+        if (sectorsFlightsViews !=null)
+          for (int i = 0; i< sectorsFlightsViews.length; i++)
+            sectorsFlightsViews[i].setFocusFlight(null);
       }
     }
     else
@@ -349,13 +372,13 @@ public class SectorShowPanel extends JPanel
           perc=Float.parseFloat(tf.getText());
         } catch (Exception ex) {}
         if (perc<0) {
-          perc=(canvas==null)?10:canvas[0].getMinExcessPercent();
+          perc=(shownCanvas ==null)?10: shownCanvas.getMinExcessPercent();
           tf.setText(String.valueOf(perc));
         }
         else
-          if (canvas!=null)
-            for (int i=0; i<canvas.length; i++)
-              canvas[0].setMinExcessPercent(perc);
+          if (sectorsFlightsViews !=null)
+            for (int i = 0; i< sectorsFlightsViews.length; i++)
+              sectorsFlightsViews[0].setMinExcessPercent(perc);
       }
     }
     else
@@ -363,8 +386,9 @@ public class SectorShowPanel extends JPanel
       if (timeFocuser.getValue()>timeFocuser.getMinimum() || timeFocuser.getUpperValue()<timeFocuser.getMaximum())
         timeFocuser.setFullRange();
     }
-    if (canvas!=null) {
-      ArrayList<String> selected = canvas[0].getSelectedObjectIds(), visible = canvas[0].getSelectedVisibleObjectIds();
+    if (shownCanvas !=null) {
+      ArrayList<String> selected = shownCanvas.getSelectedObjectIds(),
+                        visible = shownCanvas.getSelectedVisibleObjectIds();
       String txt = ((selected == null) ? "0" : Integer.toString(selected.size())) + " flights selected; " +
                        ((visible == null) ? "0" : Integer.toString(visible.size())) + " visible";
       labSelFlights.setText(txt);
@@ -373,21 +397,21 @@ public class SectorShowPanel extends JPanel
   }
   public void itemStateChanged(ItemEvent e) {
     if (e.getSource().equals(cbShowOnlySelected)) {
-      if (canvas!=null)
-        for (int i=0; i<canvas.length; i++)
-          canvas[i].setShowOnlySelectedFlights(cbShowOnlySelected.isSelected());
+      if (sectorsFlightsViews !=null)
+        for (int i = 0; i< sectorsFlightsViews.length; i++)
+          sectorsFlightsViews[i].setShowOnlySelectedFlights(cbShowOnlySelected.isSelected());
     }
     else
     if (e.getSource().equals(cbIgnoreReEntries)) {
-      if (canvas!=null)
-        for (int i=0; i<canvas.length; i++)
-          canvas[i].setToIgnoreReEntries(cbIgnoreReEntries.isSelected());
+      if (sectorsFlightsViews !=null)
+        for (int i = 0; i< sectorsFlightsViews.length; i++)
+          sectorsFlightsViews[i].setToIgnoreReEntries(cbIgnoreReEntries.isSelected());
     }
     else
     if (e.getSource().equals(cbHighlightExcess))  {
-      if (canvas!=null)
-        for (int i=0; i<canvas.length; i++)
-          canvas[i].setToHighlightCapExcess(cbHighlightExcess.isSelected());
+      if (sectorsFlightsViews !=null)
+        for (int i = 0; i< sectorsFlightsViews.length; i++)
+          sectorsFlightsViews[i].setToHighlightCapExcess(cbHighlightExcess.isSelected());
     }
   }
   
@@ -399,8 +423,8 @@ public class SectorShowPanel extends JPanel
   protected void getTimeRange() {
     int m1=timeFocuser.getValue(), m2=timeFocuser.getUpperValue();
     if (m2-m1<60) {
-      if (canvas!=null)
-        if (m1==canvas[0].getMinuteStart()) {
+      if (sectorsFlightsViews !=null)
+        if (m1== sectorsFlightsViews[0].getMinuteStart()) {
           m2=m1+60;
           if (m2>SectorShowCanvas.minutesInDay) {
             m2=SectorShowCanvas.minutesInDay;
@@ -425,9 +449,9 @@ public class SectorShowPanel extends JPanel
     }
     tfTStart.setText(String.format("%02d:%02d",m1/60,m1%60));
     tfTEnd.setText(String.format("%02d:%02d",m2/60,m2%60));
-    if (canvas!=null)
-      for (int i=0; i<canvas.length; i++)
-        canvas[i].setTimeRange(m1,m2);
+    if (sectorsFlightsViews !=null)
+      for (int i = 0; i< sectorsFlightsViews.length; i++)
+        sectorsFlightsViews[i].setTimeRange(m1,m2);
     bFullRange.setEnabled(m1>timeFocuser.getMinimum() || m2<timeFocuser.getMaximum());
   }
   

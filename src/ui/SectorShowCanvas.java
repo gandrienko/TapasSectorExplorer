@@ -668,7 +668,8 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
   }
   
   public void redraw() {
-    paintComponent(getGraphics());
+    if (isShowing())
+      paintComponent(getGraphics());
   }
   
   public void sortSelectedObjects() {
@@ -692,6 +693,22 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     synchronized (selectedObjIds) {
       selectedObjIds = sorted;
     }
+  }
+  
+  public void setSelectedObjIds(ArrayList<String> newSelection) {
+    if (selectedObjIds==null)
+      if (newSelection==null) return;
+      else;
+    else
+      if (newSelection!=null &&
+              selectedObjIds.size()==newSelection.size() &&
+              selectedObjIds.containsAll(newSelection))
+        return;
+    this.selectedObjIds=(ArrayList<String>)newSelection.clone();
+    selection_Valid=false;
+    if (showOnlySelectedFlights)
+      off_Valid=false;
+    redraw();
   }
   
   public ArrayList<String> getSelectedObjectIds() {
@@ -910,6 +927,8 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
   
   @Override
   public void mouseClicked(MouseEvent e) {
+    if (!isShowing())
+      return;
     clicked=e.getClickCount()==1;
     if (e.getClickCount()==2) {
       int is[]=getSectorIdx(e.getY());
@@ -941,12 +960,16 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
   
   @Override
   public void mousePressed(MouseEvent e) {
+    if (!isShowing())
+      return;
     dragX0=e.getX(); dragY0=e.getY();
     dragged=false;
   }
   
   @Override
   public void mouseReleased(MouseEvent e) {
+    if (!isShowing())
+      return;
     if (dragged) {
       if (dragX0>=0 && dragY0>=0 && flightDrawers != null) {
         int x0 = Math.min(e.getX(), dragX0), y0 = Math.min(e.getY(), dragY0);
@@ -1009,12 +1032,16 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
   
   @Override
   public void mouseEntered(MouseEvent e) {
+    if (!isShowing())
+      return;
     dragX0=-1; dragY0=-1;
     dragged=false;
   }
   
   @Override
   public void mouseExited(MouseEvent e) {
+    if (!isShowing())
+      return;
     clicked=false;
     if (hlIdx>=0) {
       hlIdx = -1;
@@ -1029,6 +1056,8 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
   
   @Override
   public void mouseDragged(MouseEvent e) {
+    if (!isShowing())
+      return;
     if (dragY0<0 || dragY0<0)
       return;
     if (dragged)
@@ -1046,6 +1075,8 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
   
   @Override
   public void mouseMoved(MouseEvent me) {
+    if (!isShowing())
+      return;
     int fIdx= getFlightIdxAtPosition(me.getX(),me.getY());
     if (fIdx!=hlIdx) {
       if (hlIdx>=0) {
