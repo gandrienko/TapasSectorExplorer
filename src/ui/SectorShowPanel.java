@@ -1,5 +1,6 @@
 package ui;
 
+import data_manage.FlightInSector;
 import data_manage.OneSectorData;
 import data_manage.SectorSet;
 
@@ -7,15 +8,14 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
+import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.HashSet;
 
 public class SectorShowPanel extends JPanel
-    implements ActionListener, ItemListener, ChangeListener {
+    implements ActionListener, ItemListener, ChangeListener, MouseListener {
   /**
    * The canvas(es) with the visual representation. There may be several canvases
    * representing different scenarios
@@ -216,6 +216,7 @@ public class SectorShowPanel extends JPanel
     
     labSelFlights=new JLabel("0 flights selected",JLabel.CENTER);
     p.add(labSelFlights,BorderLayout.NORTH);
+    labSelFlights.addMouseListener(this);
     
     JSplitPane spl=new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,mainP,p);
     setLayout(new BorderLayout());
@@ -490,4 +491,90 @@ public class SectorShowPanel extends JPanel
     bFullRange.setEnabled(m1>timeFocuser.getMinimum() || m2<timeFocuser.getMaximum());
   }
   
+  public void putSelectedIdsToClipboard(){
+    if (sectorsFlightsViews==null || sectorsFlightsViews.length<1)
+      return;
+    ArrayList<String> ids=sectorsFlightsViews[0].getSelectedVisibleObjectIds();
+    if (ids==null || ids.isEmpty())
+      return;
+    Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+    if (clipboard==null)
+      return;
+    StringBuffer txt=new StringBuffer();
+    for (int i=0; i<ids.size(); i++)
+      txt.append(ids.get(i)+"\n");
+    clipboard.setContents(new StringSelection(txt.toString()),null);
+  }
+  
+  public void putSelectedFlightPathsToClipboard(){
+    if (sectorsFlightsViews==null || sectorsFlightsViews.length<1)
+      return;
+    ArrayList<String> ids=sectorsFlightsViews[0].getSelectedVisibleObjectIds();
+    if (ids==null || ids.isEmpty())
+      return;
+    Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+    if (clipboard==null)
+      return;
+    StringBuffer txt=new StringBuffer();
+    for (int i=0; i<ids.size(); i++) {
+      txt.append(ids.get(i) + "\n");
+      ArrayList<FlightInSector> seq = sectorsFlightsViews[0].sectors.getSectorVisitSequence(ids.get(i));
+      if (seq==null || seq.isEmpty()) {
+        if (i+1<ids.size())
+          txt.append("\n");
+        continue;
+      }
+      for (int j = 0; j < seq.size(); j++) {
+        FlightInSector f = seq.get(j);
+        txt.append(f.sectorId + ": " + f.entryTime + ".." + f.exitTime+"\n");
+      }
+      if (i+1<ids.size())
+        txt.append("\n");
+    }
+    clipboard.setContents(new StringSelection(txt.toString()),null);
+  }
+  
+  protected JPopupMenu popupMenu=null;
+  
+  public void mousePressed(MouseEvent e) {
+    if (sectorsFlightsViews==null || sectorsFlightsViews.length<1)
+      return;
+    if (sectorsFlightsViews[0].hasSelectedVisibleObjects() &&
+        e.getSource().equals(labSelFlights) && e.getButton()>MouseEvent.BUTTON1) {
+      Point p=getMousePosition();
+      if (p==null)
+        return;
+      if (popupMenu !=null) {
+        popupMenu.show(this, p.x, p.y);
+        return;
+      }
+      popupMenu = new JPopupMenu();
+      JMenuItem mit=new JMenuItem("Put identifiers to clipboard");
+      popupMenu.add(mit);
+      mit.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          popupMenu.setVisible(false);
+          putSelectedIdsToClipboard();
+        }
+      });
+      mit=new JMenuItem("Put paths to clipboard");
+      popupMenu.add(mit);
+      mit.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          popupMenu.setVisible(false);
+          putSelectedFlightPathsToClipboard();
+        }
+      });
+    }
+    else
+      if (popupMenu!=null && popupMenu.isVisible())
+        popupMenu.setVisible(false);
+  }
+  
+  public void mouseClicked(MouseEvent e) {}
+  public void mouseReleased(MouseEvent e) {}
+  public void mouseEntered(MouseEvent e) {}
+  public void mouseExited(MouseEvent e) {}
 }

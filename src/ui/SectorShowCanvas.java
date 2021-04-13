@@ -793,14 +793,24 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     if (selectedObjIds==null || selectedObjIds.isEmpty())
       return null;
     ArrayList<String> drawn= new ArrayList<String>(selectedObjIds.size());
-    for (int i=0; i<selectedObjIds.size(); i++) {
-      int idx = getDrawnObjIndex(selectedObjIds.get(i));
-      if (idx >= 0)
-        drawn.add(flightDrawers[idx].flightId);
-    }
+    for (int i=0; i<flightDrawers.length && drawn.size()<selectedObjIds.size(); i++)
+      if (selectedObjIds.contains(flightDrawers[i].flightId))
+        drawn.add(flightDrawers[i].flightId);
     if (drawn.isEmpty())
       return null;
     return drawn;
+  }
+  
+  public boolean hasSelectedObjects(){
+    return selectedObjIds!=null && !selectedObjIds.isEmpty();
+  }
+  
+  public boolean hasSelectedVisibleObjects(){
+    if (hasSelectedObjects())
+      for (int i=0; i<flightDrawers.length; i++)
+        if (selectedObjIds.contains(flightDrawers[i].flightId))
+          return true;
+    return false;
   }
 
   public void deselectObject(String oId){
