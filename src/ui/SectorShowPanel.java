@@ -12,6 +12,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.util.ArrayList;
+import java.util.HashSet;
 
 public class SectorShowPanel extends JPanel
     implements ActionListener, ItemListener, ChangeListener {
@@ -291,6 +292,16 @@ public class SectorShowPanel extends JPanel
               sectorsFlightsViews[i].setSelectedObjIds(fIds);
       }
       else
+      if (cmd.equals("object_marking")) {
+        SectorShowCanvas canvas=(SectorShowCanvas)ae.getSource();
+        HashSet<String> fIds=canvas.getMarkedObjIds();
+        flInfoPanel.setMarkedObjIds(fIds);
+        if (sectorsFlightsViews.length>1)
+          for (int i = 0; i< sectorsFlightsViews.length; i++)
+            if (!canvas.equals(sectorsFlightsViews[i]))
+              sectorsFlightsViews[i].setMarkedObjIds(fIds);
+      }
+      else
       if (cmd.startsWith("deselect_object:"))  {
         String oId=cmd.substring(16);
         for (int i = 0; i< sectorsFlightsViews.length; i++)
@@ -331,6 +342,29 @@ public class SectorShowPanel extends JPanel
         if (sectorsFlightsViews !=null)
           for (int i = 0; i< sectorsFlightsViews.length; i++)
             sectorsFlightsViews[i].setFocusFlight(null);
+      }
+      else
+      if (cmd.startsWith("mark:") || cmd.startsWith("unmark:")) {
+        if (sectorsFlightsViews==null)
+          return;
+        String fId=cmd.substring(cmd.indexOf(':')+1);
+        boolean mark=cmd.startsWith("m");
+        HashSet<String> fIds=sectorsFlightsViews[0].getMarkedObjIds();
+        if (mark) {
+          if (fIds!=null && fIds.contains(fId))
+            return;
+          if (fIds==null)
+            fIds=new HashSet<String>(50);
+          fIds.add(fId);
+        }
+        else {
+          if (fIds==null || !fIds.contains(fId))
+            return;
+          fIds.remove(fId);
+        }
+        flInfoPanel.setMarkedObjIds(fIds);
+        for (int i = 0; i< sectorsFlightsViews.length; i++)
+          sectorsFlightsViews[i].setMarkedObjIds(fIds);
       }
     }
     else
@@ -400,6 +434,7 @@ public class SectorShowPanel extends JPanel
       if (sectorsFlightsViews !=null)
         for (int i = 0; i< sectorsFlightsViews.length; i++)
           sectorsFlightsViews[i].setShowOnlySelectedFlights(cbShowOnlySelected.isSelected());
+      flInfoPanel.setAllowMarking(cbShowOnlySelected.isSelected());
     }
     else
     if (e.getSource().equals(cbIgnoreReEntries)) {

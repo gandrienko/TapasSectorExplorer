@@ -97,6 +97,10 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
    */
   public boolean showOnlySelectedFlights=false;
   /**
+   * In the mode of showing only selected flights, this hash set contains identifiers of "marked" flights
+   */
+  protected HashSet<String> markedObjIds=null;
+  /**
    * Time range to show (minutes of the day)
    */
   public int minuteStart=0, minuteEnd=minutesInDay;
@@ -107,7 +111,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
   /**
    * Used to speed up redrawing
    */
-  protected BufferedImage off_Image=null, off_Image_selected=null;
+  protected BufferedImage off_Image=null, off_Image_selected=null, offMarked=null;
   protected boolean off_Valid=false, selection_Valid=false;
   
   
@@ -322,6 +326,8 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     if (this.showOnlySelectedFlights != only) {
       this.showOnlySelectedFlights = only;
       off_Valid = false;
+      if (markedObjIds!=null)
+        markedObjIds.clear();
       redraw();
     }
   }
@@ -396,8 +402,10 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       }
       else {
         //gr.drawImage(off_Image,0,0,null);
-        if (showOnlySelectedFlights)
-          gr.drawImage(off_Image,0,0,null);
+        if (showOnlySelectedFlights) {
+          gr.drawImage(off_Image, 0, 0, null);
+          drawMarked(gr);
+        }
         else
           drawSelected(gr);
         if (hlIdx>=0)
@@ -406,7 +414,8 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       }
     }
     selection_Valid=false;
-    
+    offMarked=null;
+  
     if (off_Image==null || off_Image.getWidth()!=w || off_Image.getHeight()!=h)
       off_Image=new BufferedImage(w,h,BufferedImage.TYPE_INT_ARGB);
     Graphics2D g = off_Image.createGraphics();
@@ -553,8 +562,10 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     showSectorVisitAggregates(g);
 
     off_Valid=true;
-    if (showOnlySelectedFlights)
-      gr.drawImage(off_Image,0,0,null);
+    if (showOnlySelectedFlights) {
+      gr.drawImage(off_Image, 0, 0, null);
+      drawMarked(gr);
+    }
     else
       drawSelected(gr);
     if (hlIdx>=0 && hlIdx<flightDrawers.length)
@@ -638,6 +649,43 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       if (objId.equals(flightDrawers[i].flightId))
         return i;
     return -1;
+  }
+  
+  public void setMarkedObjIds(HashSet<String> marked) {
+    if (marked==null && markedObjIds==null)
+      return;
+    this.markedObjIds=marked;
+    updateMarked();
+  }
+  
+  public HashSet<String> getMarkedObjIds () {
+    return markedObjIds;
+  }
+  
+  protected void updateMarked() {
+    offMarked=null;
+    if (isShowing() && showOnlySelectedFlights && off_Image!=null) {
+      Graphics g=getGraphics();
+      g.drawImage(off_Image,0,0,null);
+      drawMarked(g);
+    }
+  }
+  
+  protected void drawMarked(Graphics g) {
+    if (showOnlySelectedFlights && markedObjIds!=null && !markedObjIds.isEmpty()) {
+      if (offMarked==null) {
+        offMarked=new BufferedImage(getWidth(),getHeight(),BufferedImage.TYPE_INT_ARGB);
+        Graphics2D gr = offMarked.createGraphics();
+        RenderingHints rh = new RenderingHints(
+            RenderingHints.KEY_ANTIALIASING,
+            RenderingHints.VALUE_ANTIALIAS_ON);
+        gr.setRenderingHints(rh);
+        for (int i = 0; i < flightDrawers.length; i++)
+          if (markedObjIds.contains(flightDrawers[i].flightId))
+            flightDrawers[i].drawSelected(gr);
+      }
+      g.drawImage(offMarked,0,0,null);
+    }
   }
   
   protected void drawSelected(Graphics g) {
@@ -805,18 +853,18 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       int is[]={0,0};
       return is;
     }
-    if (yPos<=yMarg+hFrom) {
+    if (yPos<=yMarg+hFrom && fromSorted!=null && !fromSorted.isEmpty()) {
       int sIdx=(yPos-yMarg)/(hOther+vSpace);
       if (sIdx<0 || yPos>yMarg+sIdx*(hOther+vSpace)+hOther) //the mouse is in a vertical space between sectors
         return null;
-      int is[]={-1,fromSorted.size()-sIdx-1};
+      int is[]={-1,Math.max(fromSorted.size()-sIdx-1,0)};
       return is;
     }
-    if (yPos>yMarg+hFrom+hFocus+vSpace) {
+    if (yPos>yMarg+hFrom+hFocus+vSpace && toSorted!=null && !toSorted.isEmpty()) {
       int sIdx=(yPos-yMarg-hFrom-hFocus)/(hOther+vSpace);
       if (sIdx<0 || yPos<yMarg+hFrom+hFocus+sIdx*(hOther+vSpace)+vSpace) //the mouse is in a vertical space between sectors
         return null;
-      int is[]={1,sIdx};
+      int is[]={1,Math.min(sIdx,toSorted.size()-1)};
       return is;
     }
     return null;
@@ -831,8 +879,81 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     return -1;
   }
   
+  public void selectFlights(HashSet<String> newSelection) {
+    if (newSelection==null || newSelection.isEmpty())
+      return;
+    for (String id:newSelection)
+      if (selectedObjIds == null || !selectedObjIds.contains(id)) {
+        if (selectedObjIds == null)
+          selectedObjIds = new ArrayList<String>(50);
+        selectedObjIds.add(id);
+        selection_Valid=false;
+      }
+    if (!selection_Valid && showOnlySelectedFlights)
+      off_Valid = false;
+    if (!selection_Valid) {
+      sortSelectedObjects();
+      sendActionEvent("object_selection");
+    }
+    redraw();
+  }
+  
+  public void selectEntering(OneSectorData sector, LocalTime t1, LocalTime t2){
+    if (sector==null || t1==null || t2==null || t1.compareTo(t2)>=0)
+      return;
+    HashSet<String> newSelection=new HashSet<String>(100);
+    for (FlightInSector flight:sector.sortedFlights) {
+      if (flight.entryTime.compareTo(t2)>=0)
+        break;
+      if (flight.entryTime.compareTo(t1)>=0)
+        newSelection.add(flight.flightId);
+    }
+    selectFlights(newSelection);
+  }
+  
+  public void selectVisiting(OneSectorData sector, LocalTime t1, LocalTime t2){
+    if (sector==null || t1==null || t2==null || t1.compareTo(t2)>=0)
+      return;
+    HashSet<String> newSelection=new HashSet<String>(100);
+    for (FlightInSector flight:sector.sortedFlights) {
+      if (flight.entryTime.compareTo(t2)>=0)
+        break;
+      if (flight.exitTime.compareTo(t1)>=0)
+        newSelection.add(flight.flightId);
+    }
+    selectFlights(newSelection);
+  }
+  
+  public void selectExiting(OneSectorData sector, LocalTime t1, LocalTime t2){
+    if (sector==null || t1==null || t2==null || t1.compareTo(t2)>=0)
+      return;
+    HashSet<String> newSelection=new HashSet<String>(100);
+    for (FlightInSector flight:sector.sortedFlights) {
+      if (flight.entryTime.compareTo(t2)>=0)
+        break;
+      if (flight.exitTime.compareTo(t1)>=0 && flight.exitTime.compareTo(t2)<0)
+        newSelection.add(flight.flightId);
+    }
+    selectFlights(newSelection);
+  }
+  
+  public void selectStaying(OneSectorData sector, LocalTime t1, LocalTime t2){
+    if (sector==null || t1==null || t2==null || t1.compareTo(t2)>=0)
+      return;
+    HashSet<String> newSelection=new HashSet<String>(100);
+    for (FlightInSector flight:sector.sortedFlights) {
+      if (flight.entryTime.compareTo(t2)>=0)
+        break;
+      if (flight.exitTime.compareTo(t2)>=0)
+        newSelection.add(flight.flightId);
+    }
+    selectFlights(newSelection);
+  }
+  
   @Override
   public String getToolTipText(MouseEvent me) {
+    if (me.getButton()!=MouseEvent.NOBUTTON)
+      return null;
     int fIdx= getFlightIdxAtPosition(me.getX(),me.getY());
     if (fIdx>=0) {
       FlightInSector f=sInFocus.sortedFlights.get(fIdx);
@@ -848,7 +969,8 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
             str += "<table border=0>";
             bTableSTarted=true;
           }
-          str+="<tr style=\"color:rgb("+r+","+g+","+b+")\"><td>Sector "+ff.sectorId+"</td><td>"+ff.entryTime+".."+ff.exitTime+"</td></tr>";
+          str+="<tr style=\"color:rgb("+r+","+g+","+b+")\"><td>Sector "+ff.sectorId+"</td><td>"+
+                   ff.entryTime+".."+ff.exitTime+"</td></tr>";
         }
       }
       int r=focusSectorColor.getRed(), g=focusSectorColor.getGreen(), b=focusSectorColor.getBlue();
@@ -935,17 +1057,16 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
   public void mouseClicked(MouseEvent e) {
     if (!isShowing())
       return;
+    if (e.getButton()>MouseEvent.BUTTON1)
+      return;
     clicked=e.getClickCount()==1;
     if (e.getClickCount()==2) {
       int is[]=getSectorIdx(e.getY());
       if (is==null || (is!=null && is[0]==0)) {
-        if (selectedObjIds!=null && !selectedObjIds.isEmpty()) {
-          selectedObjIds.clear();
-          selection_Valid=false;
-          if (showOnlySelectedFlights)
-            off_Valid=false;
-          redraw();
-          sendActionEvent("object_selection");
+        if (showOnlySelectedFlights && markedObjIds!=null && !markedObjIds.isEmpty()) {
+          markedObjIds.clear();
+          updateMarked();
+          sendActionEvent("object_marking");
         }
         return;
       }
@@ -964,11 +1085,98 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
   protected int dragX0=-1, dragY0=-1;
   protected boolean dragged=false;
   
+  JPopupMenu popupMenu=null;
+  
   @Override
   public void mousePressed(MouseEvent e) {
     if (!isShowing())
       return;
-    dragX0=e.getX(); dragY0=e.getY();
+    if (popupMenu!=null && popupMenu.isVisible())
+      return;
+    if (e.getButton()>MouseEvent.BUTTON1) {
+      JMenuItem mitDeselect=(selectedObjIds!=null && !selectedObjIds.isEmpty())?
+                             new JMenuItem("Deselect all flights"):null;
+      if (mitDeselect!=null)
+        mitDeselect.addActionListener(new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent e) {
+            selectedObjIds.clear();
+            selection_Valid=false;
+            if (showOnlySelectedFlights)
+              off_Valid=false;
+            redraw();
+            popupMenu=null;
+            sendActionEvent("object_selection");
+          }
+        });
+      int is[]=getSectorIdx(e.getY());
+      if (is==null) {
+        if (mitDeselect!=null) {
+          popupMenu=new JPopupMenu();
+          popupMenu.add(mitDeselect);
+          popupMenu.show(this,e.getX(),e.getY());
+        }
+        return;
+      }
+      OneSectorData sector=(is[0]==0)?sInFocus:(is[0]<0)?fromSorted.get(is[1]):toSorted.get(is[1]);
+      // find time interval
+      int m=getMinuteOfDayForXPos(e.getX()-tMarg,tWidth);
+      if (m<0 || m>=minutesInDay)
+        return;
+      int m1=(m/tStepAggregates)*tStepAggregates, m2=m1+tStepAggregates;
+      LocalTime t1=LocalTime.of(m1/60,m1%60,0),
+          t2=LocalTime.of(m2/60,m2%60,0);
+      popupMenu=new JPopupMenu();
+      popupMenu.add("Sector "+sector.sectorId);
+      popupMenu.add("Time interval "+t1+".."+t2);
+      popupMenu.addSeparator();
+      popupMenu.add("Select flights:");
+      JMenuItem mit=new JMenuItem("entering the sector");
+      popupMenu.add(mit);
+      mit.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          popupMenu=null;
+          selectEntering(sector,t1,t2);
+        }
+      });
+      mit=new JMenuItem("being in the sector");
+      popupMenu.add(mit);
+      mit.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          popupMenu=null;
+          selectVisiting(sector,t1,t2);
+        }
+      });
+      mit=new JMenuItem("exiting the sector");
+      popupMenu.add(mit);
+      mit.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          popupMenu=null;
+          selectExiting(sector,t1,t2);
+        }
+      });
+      mit=new JMenuItem("not exiting the sector");
+      popupMenu.add(mit);
+      mit.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          popupMenu=null;
+          selectStaying(sector,t1,t2);
+        }
+      });
+      if (mitDeselect!=null) {
+        popupMenu.addSeparator();
+        popupMenu.add(mitDeselect);
+      }
+      popupMenu.show(this,e.getX(),e.getY());
+    }
+    else {
+      dragX0 = e.getX();
+      dragY0 = e.getY();
+    }
     dragged=false;
   }
   
@@ -976,33 +1184,47 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
   public void mouseReleased(MouseEvent e) {
     if (!isShowing())
       return;
+    if (popupMenu!=null && popupMenu.isVisible())
+      return;
     if (dragged) {
       if (dragX0>=0 && dragY0>=0 && flightDrawers != null) {
         int x0 = Math.min(e.getX(), dragX0), y0 = Math.min(e.getY(), dragY0);
         int w = Math.abs(e.getX() - dragX0), h = Math.abs(e.getY() - dragY0);
         if (w > 0 && h > 0) {
-          HashSet<String> newSelection=new HashSet<String>(100);
+          HashSet<String> newSelection=new HashSet<String>(250);
           for (int i = 0; i < flightDrawers.length; i++)
             if (flightDrawers[i].intersects(x0, y0, w, h))
               newSelection.add(flightDrawers[i].flightId);
           if (!newSelection.isEmpty())
-            for (String id:newSelection)
-              if (selectedObjIds == null || !selectedObjIds.contains(id)) {
-                if (selectedObjIds == null)
-                  selectedObjIds = new ArrayList<String>(50);
-                selectedObjIds.add(id);
-                selection_Valid=false;
+            if (showOnlySelectedFlights) {
+              for (String id : newSelection)
+                if (markedObjIds==null || !markedObjIds.contains(id)) {
+                  if (markedObjIds==null)
+                    markedObjIds=new HashSet<String>(100);
+                  markedObjIds.add(id);
+                }
+                else
+                  markedObjIds.remove(id);
+              updateMarked();
+              sendActionEvent("object_marking");
+            }
+            else {
+              for (String id : newSelection)
+                if (selectedObjIds == null || !selectedObjIds.contains(id)) {
+                  if (selectedObjIds == null)
+                    selectedObjIds = new ArrayList<String>(50);
+                  selectedObjIds.add(id);
+                  selection_Valid = false;
+                }
+                else {
+                  selectedObjIds.remove(id);
+                  selection_Valid = false;
+                }
+              if (!selection_Valid) {
+                sortSelectedObjects();
+                sendActionEvent("object_selection");
               }
-              else {
-                selectedObjIds.remove(id);
-                selection_Valid=false;
-              }
-          if (!selection_Valid && showOnlySelectedFlights)
-            off_Valid = false;
-        }
-        if (!selection_Valid) {
-          sortSelectedObjects();
-          sendActionEvent("object_selection");
+            }
         }
         redraw();
       }
@@ -1013,20 +1235,22 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       dragX0=-1; dragY0=-1;
       if (clicked) {
         clicked = false;
-        if (e.getButton()>MouseEvent.BUTTON1) {
-          int is[]=getSectorIdx(e.getY());
-          if (is==null)
-            return;
-          OneSectorData sector=(is[0]==0)?sInFocus:(is[0]<0)?fromSorted.get(is[1]):toSorted.get(is[1]);
-          // find time interval
-          int m=getMinuteOfDayForXPos(e.getX()-tMarg,tWidth);
-          if (m<0 || m>=minutesInDay)
-            return;
-          int t1=m/tStepAggregates, t2=t1+tStepAggregates;
-        }
-        else {
-          int fIdx = getFlightIdxAtPosition(e.getX(), e.getY());
-          if (fIdx >= 0) {
+        if (e.getButton()>MouseEvent.BUTTON1)
+          return;
+        int fIdx = getFlightIdxAtPosition(e.getX(), e.getY());
+        if (fIdx >= 0)
+          if (showOnlySelectedFlights) {
+            if (markedObjIds==null || !markedObjIds.contains(flightDrawers[fIdx].flightId)) {
+              if (markedObjIds==null)
+                markedObjIds=new HashSet<String>(100);
+              markedObjIds.add(flightDrawers[fIdx].flightId);
+            }
+            else
+              markedObjIds.remove(flightDrawers[fIdx].flightId);
+            updateMarked();
+            sendActionEvent("object_marking");
+          }
+          else {
             if (selectedObjIds == null || !selectedObjIds.contains(flightDrawers[fIdx].flightId)) {
               if (selectedObjIds == null)
                 selectedObjIds = new ArrayList<String>(50);
@@ -1048,7 +1272,6 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
               sendActionEvent("object_selection");
             }
           }
-        }
       }
     }
   }
@@ -1057,13 +1280,18 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
   public void mouseEntered(MouseEvent e) {
     if (!isShowing())
       return;
+    if (popupMenu!=null && popupMenu.isVisible())
+      return;
     dragX0=-1; dragY0=-1;
     dragged=false;
+    clicked=false;
   }
   
   @Override
   public void mouseExited(MouseEvent e) {
     if (!isShowing())
+      return;
+    if (popupMenu!=null && popupMenu.isVisible())
       return;
     clicked=false;
     if (hlIdx>=0) {
@@ -1080,6 +1308,10 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
   @Override
   public void mouseDragged(MouseEvent e) {
     if (!isShowing())
+      return;
+    if (popupMenu!=null && popupMenu.isVisible())
+      return;
+    if (e.getButton()>MouseEvent.BUTTON1)
       return;
     if (dragY0<0 || dragY0<0)
       return;
@@ -1099,6 +1331,10 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
   @Override
   public void mouseMoved(MouseEvent me) {
     if (!isShowing())
+      return;
+    if (popupMenu!=null && popupMenu.isVisible())
+      return;
+    if (me.getButton()!=MouseEvent.NOBUTTON)
       return;
     int fIdx= getFlightIdxAtPosition(me.getX(),me.getY());
     if (fIdx!=hlIdx) {
