@@ -85,9 +85,9 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
    */
   protected FlightDrawer flightDrawers[]=null;
   /**
-   * Index of the currently highlighted object
+   * Indexes of the currently highlighted object
    */
-  protected int hlIdx=-1;
+  protected int hlIdxs[]=null;
   /**
    * Identifiers of selected objects
    */
@@ -408,8 +408,9 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
         }
         else
           drawSelected(gr);
-        if (hlIdx>=0)
-          flightDrawers[hlIdx].drawHighlighted(getGraphics());
+        if (hlIdxs!=null)
+          for (int i:hlIdxs)
+            flightDrawers[i].drawHighlighted(getGraphics());
         return;
       }
     }
@@ -568,8 +569,9 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     }
     else
       drawSelected(gr);
-    if (hlIdx>=0 && hlIdx<flightDrawers.length)
-      flightDrawers[hlIdx].drawHighlighted(getGraphics());
+    if (hlIdxs!=null)
+      for (int i:hlIdxs)
+        flightDrawers[i].drawHighlighted(getGraphics());
   }
   
   protected void showSectorVisitAggregates(Graphics g) {
@@ -649,6 +651,24 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       if (objId.equals(flightDrawers[i].flightId))
         return i;
     return -1;
+  }
+  
+  protected int[] getDrawnObjIndexes(String objId) {
+    if (flightDrawers==null || objId==null)
+      return null;
+    ArrayList<Integer> iList=null;
+    for (int i=0; i<flightDrawers.length; i++)
+      if (objId.equals(flightDrawers[i].flightId)) {
+        if (iList==null)
+          iList=new ArrayList<Integer>(10);
+        iList.add(i);
+      }
+    if (iList==null)
+      return null;
+    int idxs[]=new int[iList.size()];
+    for (int i=0; i<iList.size(); i++)
+      idxs[i]=iList.get(i);
+    return idxs;
   }
   
   public void setMarkedObjIds(HashSet<String> marked) {
@@ -800,9 +820,9 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
   public void highlightObject(String oId) {
     if (oId==null)
       return;
-    int idx=getDrawnObjIndex(oId);
-    if (hlIdx!=idx) {
-      hlIdx=idx;
+    int idxs[]=getDrawnObjIndexes(oId);
+    if (idxs!=null && (hlIdxs==null || hlIdxs[0]!=idxs[0])) {
+      hlIdxs=idxs;
       redraw();
     }
   }
@@ -810,9 +830,9 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
   public void dehighlightObject(String oId) {
     if (oId==null)
       return;
-    int idx=getDrawnObjIndex(oId);
-    if (idx>=0 && hlIdx==idx) {
-      hlIdx=-1;
+    int idxs[]=getDrawnObjIndexes(oId);
+    if (idxs!=null && hlIdxs==null) {
+      hlIdxs=null;
       redraw();
     }
   }
@@ -1072,7 +1092,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       }
       if (is[0]==0)
         return;
-      hlIdx = -1;
+      hlIdxs = null;
       synchronized (this) {
         if (is[0] == -1 && is[1] >= 0)
           sendActionEvent("select_sector:" + fromSorted.get(is[1]).sectorId);
@@ -1294,8 +1314,8 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     if (popupMenu!=null && popupMenu.isVisible())
       return;
     clicked=false;
-    if (hlIdx>=0) {
-      hlIdx = -1;
+    if (hlIdxs!=null) {
+      hlIdxs = null;
       redraw();
     }
     dragX0=-1; dragY0=-1;
@@ -1337,14 +1357,13 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     if (me.getButton()!=MouseEvent.NOBUTTON)
       return;
     int fIdx= getFlightIdxAtPosition(me.getX(),me.getY());
-    if (fIdx!=hlIdx) {
-      if (hlIdx>=0) {
-        hlIdx=-1;
-        redraw();
+    if (fIdx<0)
+      if (hlIdxs!=null) {
+        hlIdxs=null;
+        redraw();;
       }
-      hlIdx=fIdx;
-      if (fIdx >= 0)
-        flightDrawers[fIdx].drawHighlighted(getGraphics());
-    }
+      else;
+    else
+      highlightObject(flightDrawers[fIdx].flightId);
   }
 }
