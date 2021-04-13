@@ -194,4 +194,19 @@ public class SectorSet {
       list.add(entry.getValue());
     return list;
   }
+  /**
+   * Checks if the sequences of sector visits and the times of the visits coincide
+   */
+  public static boolean sameSequence(ArrayList<FlightInSector> seq1, ArrayList<FlightInSector> seq2){
+    if (seq1==null)
+      return seq2==null;
+    if (seq2==null)
+      return false;
+    if (seq1.size()!=seq2.size())
+      return false;
+    for (int i=0; i<seq1.size(); i++)
+      if (!seq1.get(i).equals(seq2.get(i)))
+        return false;
+    return true;
+  }
 }

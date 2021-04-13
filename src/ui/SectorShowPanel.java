@@ -206,6 +206,8 @@ public class SectorShowPanel extends JPanel
     }
   
     flInfoPanel=new SelectedFlightsInfoShow(scenarios[0]);
+    if (scenarios.length>1)
+      flInfoPanel.setDataToCompare(scenarios[1]);
     flInfoPanel.addActionListener(this);
     flInfoPanel.setCurrentSectors(sectorsFlightsViews[0].getFocusSectorId(),
         sectorsFlightsViews[0].getFromSectorIds(), sectorsFlightsViews[0].getToSectorIds());

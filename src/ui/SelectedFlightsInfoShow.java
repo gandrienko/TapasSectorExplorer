@@ -17,6 +17,10 @@ public class SelectedFlightsInfoShow extends JPanel
    */
   public SectorSet sectors=null;
   /**
+   * In comparison mode, this is a set with alternative data
+   */
+  public SectorSet altSectors=null;
+  /**
    * Identifiers of selected flights and identifiers of those of them that are currently shown
    */
   public ArrayList<String> selectedFlIds=null, visibleFlIds =null;
@@ -76,6 +80,10 @@ public class SelectedFlightsInfoShow extends JPanel
     ActionEvent ae=new ActionEvent(this,ActionEvent.ACTION_PERFORMED,command);
     for (int i=0; i<listeners.size(); i++)
       listeners.get(i).actionPerformed(ae);
+  }
+  
+  public void setDataToCompare(SectorSet altSectors) {
+    this.altSectors=altSectors;
   }
 
   public void setCurrentSectors(String focusSectorId,
@@ -206,11 +214,24 @@ public class SelectedFlightsInfoShow extends JPanel
           flCB.add(cb);
           pan.add(cb);
           pan.add(Box.createRigidArea(new Dimension(0, 5)));
+          
+          ArrayList<FlightInSector> altSeq=(altSectors==null)?null:altSectors.getSectorVisitSequence(fId);
+          if (altSeq!=null && SectorSet.sameSequence(seq,altSeq))
+            altSeq=null;
     
           boolean passedFocusSector = false;
           for (int j = 0; j < seq.size(); j++) {
             FlightInSector f = seq.get(j);
-            JLabel lab = new JLabel(f.sectorId + ": " + f.entryTime + ".." + f.exitTime);
+            String txt=f.sectorId + ": " + f.entryTime + ".." + f.exitTime;
+            if (altSeq!=null && j<altSeq.size()) {
+              FlightInSector fAlt=altSeq.get(j);
+              if (!fAlt.equals(f))
+                if (fAlt.sectorId.equals(f.sectorId))
+                  txt+=" >>> "+ fAlt.entryTime + ".." + fAlt.exitTime;
+                else
+                  txt+=" >>> "+ fAlt.sectorId + ": " + fAlt.entryTime + ".." + fAlt.exitTime;
+            }
+            JLabel lab = new JLabel(txt);
             boolean sectorVisible=(fromSectorIds != null && fromSectorIds.contains(f.sectorId)) ||
                                       (toSectorIds != null && toSectorIds.contains(f.sectorId));
             lab.setForeground((sectorVisible)?Color.black:Color.gray);
