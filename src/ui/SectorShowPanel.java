@@ -217,6 +217,9 @@ public class SectorShowPanel extends JPanel
     labSelFlights=new JLabel("0 flights selected",JLabel.CENTER);
     p.add(labSelFlights,BorderLayout.NORTH);
     labSelFlights.addMouseListener(this);
+    labSelFlights.setToolTipText("Press right mouse button to put selected flights to clipboard");
+    ToolTipManager.sharedInstance().registerComponent(labSelFlights);
+    ToolTipManager.sharedInstance().setDismissDelay(Integer.MAX_VALUE);
     
     JSplitPane spl=new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,mainP,p);
     setLayout(new BorderLayout());
@@ -567,6 +570,7 @@ public class SectorShowPanel extends JPanel
           putSelectedFlightPathsToClipboard();
         }
       });
+      popupMenu.show(this, p.x, p.y);
     }
     else
       if (popupMenu!=null && popupMenu.isVisible())
