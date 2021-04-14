@@ -1,5 +1,7 @@
 package data_manage;
 
+import TapasDataReader.Record;
+
 import java.time.LocalTime;
 import java.util.*;
 
@@ -91,7 +93,19 @@ public class SectorSet {
    * @return true if successfully added
    */
   public boolean addFlightData(Object data[], String attrNames[]) {
-    FlightInSector f=FlightInSector.getFlightData(data,attrNames);
+    addFlightData(FlightInSector.getFlightData(data,attrNames));
+    return flights!=null && !flights.isEmpty();
+  }
+
+  public boolean addFlightData(Vector<Record> records) {
+    for (Record record:records)
+      addFlightData(FlightInSector.getFlightData(record));
+    return flights!=null && !flights.isEmpty();
+  }
+
+  public boolean addFlightData(FlightInSector f){
+    if (f==null)
+      return false;
     if (f==null || f.sectorId==null)
       return false;
     OneSectorData s=getSectorData(f.sectorId);
@@ -114,7 +128,7 @@ public class SectorSet {
     sequence.add(idx,f);
     return true;
   }
-  
+
   /**
    * Returns the sequence of sector visits of a given flight
    * @param flightId - identifier of the flight

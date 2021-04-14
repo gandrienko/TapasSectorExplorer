@@ -1,5 +1,7 @@
 package data_manage;
 
+import TapasDataReader.Record;
+
 import java.time.LocalTime;
 
 /**
@@ -95,6 +97,22 @@ public class FlightInSector implements Comparable<FlightInSector>{
     if (fis.sectorId!=null && fis.flightId!=null && fis.entryTime !=null && fis.exitTime!=null)
       return fis;
     return null;
+  }
+
+  public static FlightInSector getFlightData(Record record) {
+    if (record==null)
+      return null;
+    else {
+      FlightInSector fis=new FlightInSector();
+      fis.flightId=record.flight;
+      fis.sectorId=record.sector;
+      fis.delay=record.delay;
+      fis.entryTime=LocalTime.parse(record.FromT);
+      fis.exitTime=LocalTime.parse(record.ToT);
+      fis.prevSectorId=record.FromS;
+      fis.nextSectorId=record.ToS;
+      return fis;
+    }
   }
   
   @Override
