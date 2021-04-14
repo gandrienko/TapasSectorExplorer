@@ -2,6 +2,7 @@ package ui;
 
 import data_manage.FlightInSector;
 import data_manage.OneSectorData;
+import data_manage.ScenarioDistinguisher;
 import data_manage.SectorSet;
 
 import javax.swing.*;
@@ -81,6 +82,12 @@ public class SectorShowPanel extends JPanel
     super();
     if (scenarios==null || scenarios.length<1 || scenarios[0]==null || scenarios[0].getNSectors()<1)
       return;
+    ScenarioDistinguisher scDiff=null;
+    if (scenarios.length>1) {
+      scDiff=new ScenarioDistinguisher();
+      if (!scDiff.compareScenarios(scenarios[0],scenarios[1]))
+        scDiff=null;
+    }
     
     JPanel mainP=new JPanel(new BorderLayout());
     
@@ -189,13 +196,18 @@ public class SectorShowPanel extends JPanel
     chEntriesOrPresence.setSelectedIndex(0);
     chEntriesOrPresence.addActionListener(this);
     
-    sectorsFlightsViews =new SectorShowCanvas[scenarios.length];
-    JTabbedPane tabbedPane = (scenarios.length>1)?new JTabbedPane():null;
+    int nViews=scenarios.length;
+    if (scDiff!=null)
+      ++nViews;
+    
+    sectorsFlightsViews =new SectorShowCanvas[nViews];
+    JTabbedPane tabbedPane = (nViews>1)?new JTabbedPane():null;
     if (tabbedPane!=null)
       mainP.add(tabbedPane,BorderLayout.CENTER);
+    String focusSectorId=sortedSectors.get(maxIdx).sectorId;
     for (int i=0; i<scenarios.length; i++) {
       sectorsFlightsViews[i]=new SectorShowCanvas(scenarios[i]);
-      sectorsFlightsViews[i].setFocusSector(sortedSectors.get(maxIdx).sectorId);
+      sectorsFlightsViews[i].setFocusSector(focusSectorId);
       sectorsFlightsViews[i].addActionListener(this);
       if (i==0)
         chAggrStep.setSelectedItem(Integer.toString(sectorsFlightsViews[i].getAggregationTimeStep()));
@@ -203,6 +215,13 @@ public class SectorShowPanel extends JPanel
         tabbedPane.addTab("scenario "+(i+1), sectorsFlightsViews[i]);
       else
         mainP.add(sectorsFlightsViews[i], BorderLayout.CENTER);
+    }
+    if (scDiff!=null) {
+      int idx=nViews-1;
+      sectorsFlightsViews[idx]=new SectorShowCanvas(scDiff);
+      sectorsFlightsViews[idx].setFocusSector(focusSectorId);
+      sectorsFlightsViews[idx].addActionListener(this);
+      tabbedPane.addTab("differences", sectorsFlightsViews[idx]);
     }
   
     flInfoPanel=new SelectedFlightsInfoShow(scenarios[0]);
