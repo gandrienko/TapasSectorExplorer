@@ -110,4 +110,10 @@ public class ScenarioDistinguisher extends SectorSet {
       altSectors=new TreeMap<String,OneSectorData>();
     altSectors.put(sector.sectorId,sector);
   }
+  
+  public OneSectorData getAltSectorData(String sectorId) {
+    if (sectorId==null || altSectors==null || altSectors.isEmpty())
+      return null;
+    return altSectors.get(sectorId);
+  }
 }

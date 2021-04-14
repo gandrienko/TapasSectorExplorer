@@ -981,78 +981,73 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     selectFlights(newSelection);
   }
   
-  @Override
-  public String getToolTipText(MouseEvent me) {
-    if (me.getButton()!=MouseEvent.NOBUTTON)
+  public String getFlightInfoText(int fIdx) {
+    if (fIdx<0)
       return null;
-    int fIdx= getFlightIdxAtPosition(me.getX(),me.getY());
-    if (fIdx>=0) {
-      FlightInSector f=sInFocus.sortedFlights.get(fIdx);
-      String str="<html><body style=background-color:rgb(255,255,204)>"+"Flight <b>"+f.flightId+"</b><hr>";
-      FlightInSector ff=null;
-      boolean bTableSTarted=false;
-      if (f.prevSectorId!=null && fromSectors!=null) {
-        OneSectorData s=fromSectors.getSectorData(f.prevSectorId);
-        ff=(s==null)?null:s.getFlightData(f.flightId,f.entryTime,null);
-        if (ff!=null) {
-          int r=fromSectorColor.getRed(), g=fromSectorColor.getGreen(), b=fromSectorColor.getBlue();
-          if (!bTableSTarted) {
-            str += "<table border=0>";
-            bTableSTarted=true;
-          }
-          str+="<tr style=\"color:rgb("+r+","+g+","+b+")\"><td>Sector "+ff.sectorId+"</td><td>"+
-                   ff.entryTime+".."+ff.exitTime+"</td></tr>";
+    FlightInSector f=sInFocus.sortedFlights.get(fIdx);
+    String str="<html><body style=background-color:rgb(255,255,204)>"+"Flight <b>"+f.flightId+"</b><hr>";
+    FlightInSector ff=null;
+    boolean bTableSTarted=false;
+    if (f.prevSectorId!=null && fromSectors!=null) {
+      OneSectorData s=fromSectors.getSectorData(f.prevSectorId);
+      ff=(s==null)?null:s.getFlightData(f.flightId,f.entryTime,null);
+      if (ff!=null) {
+        int r=fromSectorColor.getRed(), g=fromSectorColor.getGreen(), b=fromSectorColor.getBlue();
+        if (!bTableSTarted) {
+          str += "<table border=0>";
+          bTableSTarted=true;
         }
+        str+="<tr style=\"color:rgb("+r+","+g+","+b+")\"><td>Sector "+ff.sectorId+"</td><td>"+
+                 ff.entryTime+".."+ff.exitTime+"</td></tr>";
       }
-      int r=focusSectorColor.getRed(), g=focusSectorColor.getGreen(), b=focusSectorColor.getBlue();
-      if (!bTableSTarted) {
-        str += "<table border=0>";
-        bTableSTarted=true;
-      }
-      str+="<tr style=\"color:rgb("+r+","+g+","+b+")\"><td>Sector "+f.sectorId+"</td><td>"+f.entryTime+".."+f.exitTime+"</td></tr>";
-      if (f.nextSectorId!=null && toSectors!=null) {
-        OneSectorData s=toSectors.getSectorData(f.nextSectorId);
-        ff=(s==null)?null:s.getFlightData(f.flightId,null,f.exitTime);
-        if (ff!=null) {
-          r=toSectorColor.getRed(); g=toSectorColor.getGreen(); b=toSectorColor.getBlue();
-          if (!bTableSTarted) {
-            str += "<table border=0>";
-            bTableSTarted=true;
-          }
-          str+="<tr style=\"color:rgb("+r+","+g+","+b+")\"><td>Sector "+ff.sectorId+"</td><td>"+ff.entryTime+".."+ff.exitTime+"</td></tr>";
-        }
-      }
-      if (bTableSTarted)
-        str+="</table>";
-      str+="</body></html>";
-      return str;
     }
-    int is[]=getSectorIdx(me.getY());
-    if (is==null || is[1]<0)
-      return null;
-    OneSectorData s=(is[0]<0)?fromSorted.get(is[1]):(is[0]>0)?toSorted.get(is[1]):sInFocus;
-    OneSectorData sFull=(is[0]==0)?sInFocus:sectors.getSectorData(s.sectorId);
-    
-    LocalTime tAtPos=getTimeForXPos(me.getX()-tMarg,tWidth);
+    int r=focusSectorColor.getRed(), g=focusSectorColor.getGreen(), b=focusSectorColor.getBlue();
+    if (!bTableSTarted) {
+      str += "<table border=0>";
+      bTableSTarted=true;
+    }
+    str+="<tr style=\"color:rgb("+r+","+g+","+b+")\"><td>Sector "+f.sectorId+"</td><td>"+f.entryTime+".."+f.exitTime+"</td></tr>";
+    if (f.nextSectorId!=null && toSectors!=null) {
+      OneSectorData s=toSectors.getSectorData(f.nextSectorId);
+      ff=(s==null)?null:s.getFlightData(f.flightId,null,f.exitTime);
+      if (ff!=null) {
+        r=toSectorColor.getRed(); g=toSectorColor.getGreen(); b=toSectorColor.getBlue();
+        if (!bTableSTarted) {
+          str += "<table border=0>";
+          bTableSTarted=true;
+        }
+        str+="<tr style=\"color:rgb("+r+","+g+","+b+")\"><td>Sector "+ff.sectorId+"</td><td>"+ff.entryTime+".."+ff.exitTime+"</td></tr>";
+      }
+    }
+    if (bTableSTarted)
+      str+="</table>";
+    str+="</body></html>";
+    return str;
+  }
+  
+  public String getSectorInfoText(OneSectorData s, boolean isBeforeFocus, LocalTime t){
+    boolean isFocus=s.equals(sInFocus);
+    OneSectorData sFull=(isFocus)?sInFocus:sectors.getSectorData(s.sectorId);
+  
     String txt="<html><body style=background-color:rgb(255,255,204)>"+
-                   "Time = "+tAtPos+"<br>"+
+                   "Time = "+t+"<br>"+
                    "Sector "+s.sectorId+":<br>";
-    
-    if (is[0]==0)
+  
+    if (isFocus)
       txt+=s.getNFlights()+" flights "+
-                "during time range "+s.tFirst+".."+s.tLast+"<br>";
+               "during time range "+s.tFirst+".."+s.tLast+"<br>";
     else
-      txt+=s.getNFlights()+" flights "+((is[0]<0)?"go to":"come from")+
+      txt+=s.getNFlights()+" flights "+((isBeforeFocus)?"go to":"come from")+
                " sector "+sInFocus.sectorId+"<br>during "+
                "time range "+s.tFirst+".."+s.tLast+";<br>"+
                sFull.getNFlights()+" flights crossed this sector in total<br>" +
                "during time range "+sFull.tFirst+".."+sFull.tLast+"<br>";
     txt+="capacity = "+sFull.capacity+" flights per hour";
-    
+  
     int tStep=sFull.getAggregationTimeStep();
     int counts[]=sFull.getHourlyFlightCounts(tStep);
     if (counts!=null) {
-      int idx=sFull.getTimeBinIndex(tAtPos,tStep);
+      int idx=sFull.getTimeBinIndex(t,tStep);
       if (idx>=0 && idx<counts.length) {
         LocalTime tt[]=sFull.getTimeBinRange(idx,tStep);
         if (tt!=null) {
@@ -1075,9 +1070,26 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
         }
       }
     }
-    
+  
     txt+="</body></html>";
     return txt;
+  }
+  
+  @Override
+  public String getToolTipText(MouseEvent me) {
+    if (me.getButton()!=MouseEvent.NOBUTTON)
+      return null;
+    int fIdx= getFlightIdxAtPosition(me.getX(),me.getY());
+    if (fIdx>=0)
+      return getFlightInfoText(fIdx);
+    
+    int is[]=getSectorIdx(me.getY());
+    if (is==null || is[1]<0)
+      return null;
+    OneSectorData s=(is[0]<0)?fromSorted.get(is[1]):(is[0]>0)?toSorted.get(is[1]):sInFocus;
+    LocalTime tAtPos=getTimeForXPos(me.getX()-tMarg,tWidth);
+    
+    return getSectorInfoText(s,is[0]<0,tAtPos);
   }
   
   //---------------------- MouseListener ----------------------------------------

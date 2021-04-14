@@ -218,7 +218,7 @@ public class SectorShowPanel extends JPanel
     }
     if (scDiff!=null) {
       int idx=nViews-1;
-      sectorsFlightsViews[idx]=new SectorShowCanvas(scDiff);
+      sectorsFlightsViews[idx]=new ComparisonCanvas(scDiff);
       sectorsFlightsViews[idx].setFocusSector(focusSectorId);
       sectorsFlightsViews[idx].addActionListener(this);
       tabbedPane.addTab("differences", sectorsFlightsViews[idx]);
