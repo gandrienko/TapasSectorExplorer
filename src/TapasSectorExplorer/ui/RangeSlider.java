@@ -1,4 +1,4 @@
-package ui;
+package TapasSectorExplorer.ui;
 
 import javax.swing.JSlider;
 

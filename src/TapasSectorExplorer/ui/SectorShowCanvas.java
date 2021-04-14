@@ -1,6 +1,6 @@
-package ui;
+package TapasSectorExplorer.ui;
 
-import data_manage.*;
+import TapasSectorExplorer.data_manage.*;
 
 import javax.swing.*;
 import java.awt.*;

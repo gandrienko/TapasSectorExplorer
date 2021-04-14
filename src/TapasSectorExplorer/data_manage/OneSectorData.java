@@ -1,10 +1,9 @@
-package data_manage;
+package TapasSectorExplorer.data_manage;
 
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.TreeMap;
-import java.util.TreeSet;
 
 /**
  * Contains data describing flights visiting one sector

@@ -1,11 +1,10 @@
+package TapasSectorExplorer.data_manage;
+
 import TapasDataReader.Record;
-import data_manage.DataStore;
-import data_manage.SectorSet;
-import ui.SectorShowPanel;
+import TapasSectorExplorer.ui.SectorShowPanel;
 
 import javax.swing.*;
 import java.awt.*;
-import java.time.LocalTime;
 import java.util.Vector;
 
 public class Connector {

@@ -1,7 +1,7 @@
-package ui;
+package TapasSectorExplorer.ui;
 
-import data_manage.OneSectorData;
-import data_manage.ScenarioDistinguisher;
+import TapasSectorExplorer.data_manage.OneSectorData;
+import TapasSectorExplorer.data_manage.ScenarioDistinguisher;
 
 import java.awt.*;
 import java.time.LocalTime;

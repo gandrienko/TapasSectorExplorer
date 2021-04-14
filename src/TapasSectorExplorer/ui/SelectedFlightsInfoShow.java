@@ -1,7 +1,7 @@
-package ui;
+package TapasSectorExplorer.ui;
 
-import data_manage.FlightInSector;
-import data_manage.SectorSet;
+import TapasSectorExplorer.data_manage.FlightInSector;
+import TapasSectorExplorer.data_manage.SectorSet;
 
 import javax.swing.*;
 import java.awt.*;

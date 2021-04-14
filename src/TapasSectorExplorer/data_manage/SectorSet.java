@@ -1,4 +1,4 @@
-package data_manage;
+package TapasSectorExplorer.data_manage;
 
 import TapasDataReader.Record;
 

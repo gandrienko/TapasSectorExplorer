@@ -1,4 +1,4 @@
-package ui;
+package TapasSectorExplorer.ui;
 
 import java.awt.Color;
 import java.awt.Dimension;

@@ -1,11 +1,12 @@
-import data_manage.*;
-import ui.SectorShowPanel;
+package TapasSectorExplorer;
+
+import TapasSectorExplorer.data_manage.*;
+import TapasSectorExplorer.ui.SectorShowPanel;
 
 import javax.swing.*;
 import java.awt.*;
 import java.io.*;
 import java.time.LocalTime;
-import java.util.ArrayList;
 
 public class Main {
 
@@ -65,7 +66,7 @@ public class Main {
       System.out.println("Overall time range: "+range[0]+".."+range[1]);
   
       SectorSet sectorsSolution=null;
-      data_manage.DataStore solution=new data_manage.DataStore();
+      TapasSectorExplorer.data_manage.DataStore solution=new TapasSectorExplorer.data_manage.DataStore();
       System.out.println("Tryng to get solution data ...");
       if (solution.readData(fileNameSolution)) {
         System.out.println("Successfully got solution data!");

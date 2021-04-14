@@ -1,9 +1,9 @@
-package ui;
+package TapasSectorExplorer.ui;
 
-import data_manage.FlightInSector;
-import data_manage.OneSectorData;
-import data_manage.ScenarioDistinguisher;
-import data_manage.SectorSet;
+import TapasSectorExplorer.data_manage.FlightInSector;
+import TapasSectorExplorer.data_manage.OneSectorData;
+import TapasSectorExplorer.data_manage.ScenarioDistinguisher;
+import TapasSectorExplorer.data_manage.SectorSet;
 
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
