@@ -6,6 +6,8 @@ import data_manage.SectorSet;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.time.Duration;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 
@@ -147,10 +149,18 @@ public class SelectedFlightsInfoShow extends JPanel
   protected ArrayList<JPanel> flPanels=null; //each panel corresponds to one flight,
                                              // includes a checkbox and several labels
   public ArrayList<String> panelFlIds =null; //identifiers of flights represented in the panels
+  public ArrayList<String> labelSectorIds=null; //identifiers of sectors appearing in the labels
   
   protected JPanel hlPanel=null; //highlighted panel
   
-  boolean keepScrollPosition=false;
+  protected boolean keepScrollPosition=false;
+  
+  public static String sFocusSectorColor =
+      "#"+Integer.toHexString(SectorShowCanvas.focusSectorColor.getRGB()).substring(2);
+  public static String sFromSectorColor =
+      "#"+Integer.toHexString(SectorShowCanvas.fromSectorColor.getRGB()).substring(2);
+  public static String sToSectorColor =
+      "#"+Integer.toHexString(SectorShowCanvas.toSectorColor.getRGB()).substring(2);
   
   protected void makeInterior() {
     removeAll();
@@ -160,6 +170,8 @@ public class SelectedFlightsInfoShow extends JPanel
       flCB.clear();
     if (svLabels!=null)
       svLabels.clear();
+    if (labelSectorIds!=null)
+      labelSectorIds.clear();
     if (flPanels!=null)
       flPanels.clear();
     if (panelFlIds !=null)
@@ -170,16 +182,16 @@ public class SelectedFlightsInfoShow extends JPanel
       for (int n=0; n<nLoops && nAdded<selectedFlIds.size(); n++) {
         boolean addVisible=n<nLoops-1;
         if (!addVisible) {
-          add(Box.createVerticalStrut(5));
+          add(Box.createVerticalStrut(1));
           JSeparator sep=new JSeparator(JSeparator.HORIZONTAL);
           sep.setBackground(Color.blue);
           sep.setForeground(Color.blue);
           add(sep);
-          add(Box.createVerticalStrut(5));
+          add(Box.createVerticalStrut(1));
           JLabel lab=new JLabel("Not in current view:",JLabel.CENTER);
           lab.setForeground(Color.blue);
           add(lab);
-          add(Box.createVerticalStrut(5));
+          add(Box.createVerticalStrut(1));
           sep=new JSeparator(JSeparator.HORIZONTAL);
           sep.setBackground(Color.blue);
           sep.setForeground(Color.blue);
@@ -200,6 +212,8 @@ public class SelectedFlightsInfoShow extends JPanel
             svLabels = new ArrayList<JLabel>(300);
           if (flPanels == null)
             flPanels = new ArrayList<JPanel>(300);
+          if (labelSectorIds==null)
+            labelSectorIds=new ArrayList<String>(300);
     
           JPanel pan = new JPanel();
           flPanels.add(pan);
@@ -218,40 +232,68 @@ public class SelectedFlightsInfoShow extends JPanel
           ArrayList<FlightInSector> altSeq=(altSectors==null)?null:altSectors.getSectorVisitSequence(fId);
           if (altSeq!=null && SectorSet.sameSequence(seq,altSeq))
             altSeq=null;
+          
+          if (altSeq!=null) {
+            cb.setForeground(Color.red.darker());
+            LocalTime t1=seq.get(0).entryTime, t2=altSeq.get(0).entryTime;
+            if (!t1.equals(t2)) {
+              Duration dur=Duration.between(t1,t2);
+              long diff=dur.getSeconds();
+              diff/=60;
+              cb.setText(cb.getText()+" ("+((diff>0)?"+":"")+diff+"\')");
+            }
+          }
     
           boolean passedFocusSector = false;
           for (int j = 0; j < seq.size(); j++) {
             FlightInSector f = seq.get(j);
-            String txt=f.sectorId + ": " + f.entryTime + ".." + f.exitTime;
-            if (altSeq!=null && j<altSeq.size()) {
-              FlightInSector fAlt=altSeq.get(j);
-              if (!fAlt.equals(f))
-                if (fAlt.sectorId.equals(f.sectorId))
-                  txt+=" >>> "+ fAlt.entryTime + ".." + fAlt.exitTime;
-                else
-                  txt+=" >>> "+ fAlt.sectorId + ": " + fAlt.entryTime + ".." + fAlt.exitTime;
-            }
-            JLabel lab = new JLabel(txt);
             boolean sectorVisible=(fromSectorIds != null && fromSectorIds.contains(f.sectorId)) ||
                                       (toSectorIds != null && toSectorIds.contains(f.sectorId));
-            lab.setForeground((sectorVisible)?Color.black:Color.gray);
+            String colorTxt=(sectorVisible)?"black":"gray";
             if (addVisible) {
               if (f.sectorId.equals(focusSectorId)) {
-                lab.setForeground(SectorShowCanvas.focusSectorColor);
+                colorTxt= sFocusSectorColor;
                 passedFocusSector = true;
               }
               else
                 if (!passedFocusSector && fromSectorIds != null && fromSectorIds.contains(f.sectorId))
-                  lab.setForeground(SectorShowCanvas.fromSectorColor);
+                  colorTxt= sFromSectorColor;
                 else
                   if (passedFocusSector && toSectorIds != null && toSectorIds.contains(f.sectorId))
-                    lab.setForeground(SectorShowCanvas.toSectorColor);
+                    colorTxt= sToSectorColor;
             }
+            //String txt=f.sectorId + ": " + f.entryTime + ".." + f.exitTime;
+            String txt="<html><body><font color=\""+colorTxt+"\">"+f.sectorId+"</font>"+
+                ": "+f.entryTime+".."+f.exitTime;
+            if (altSeq!=null && j<altSeq.size()) {
+              FlightInSector fAlt=altSeq.get(j);
+              if (!fAlt.equals(f)) {
+                txt += "<font color=\"#BB0000\">" + " >>> ";
+                if (!fAlt.sectorId.equals(f.sectorId))
+                  txt+="<u>"+fAlt.sectorId + "</u>: ";
+                txt += fAlt.entryTime + ".." + fAlt.exitTime + "</font>";
+              }
+            }
+            txt+="</body></html>";
+            JLabel lab = new JLabel(txt);
             svLabels.add(lab);
+            labelSectorIds.add(f.sectorId);
             pan.add(lab);
             lab.addMouseListener(this);
             pan.add(Box.createRigidArea(new Dimension(0, 3)));
           }
+          if (altSeq!=null && altSeq.size()>seq.size())
+            for (int j=seq.size(); j<altSeq.size(); j++) {
+              FlightInSector fAlt=altSeq.get(j);
+              String txt="<html><body><font color=\"#BB0000\"><u>"+fAlt.sectorId + "</u>: "+
+                             fAlt.entryTime + ".." + fAlt.exitTime + "</font></body></html>";
+              JLabel lab = new JLabel(txt);
+              svLabels.add(lab);
+              labelSectorIds.add(fAlt.sectorId);
+              pan.add(lab);
+              lab.addMouseListener(this);
+              pan.add(Box.createRigidArea(new Dimension(0, 3)));
+            }
           add(pan);
           add(Box.createRigidArea(new Dimension(0, 3)));
           if (panelFlIds == null)
@@ -326,10 +368,9 @@ public class SelectedFlightsInfoShow extends JPanel
     clearPanelHighlighting();
     if (e.getClickCount()==2) {
       if (e.getSource() instanceof JLabel) {//possibly, selection of a sector
-        String txt=((JLabel)e.getSource()).getText();
-        int idx=txt.indexOf(':');
-        if (idx>0)
-          sendActionEvent("select_sector:"+txt.substring(0,idx));
+        int idx=svLabels.indexOf((JLabel)e.getSource());
+        if (idx>=0 && idx<labelSectorIds.size())
+          sendActionEvent("select_sector:"+labelSectorIds.get(idx));
       }
     }
   }

@@ -571,7 +571,8 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       drawSelected(gr);
     if (hlIdxs!=null)
       for (int i:hlIdxs)
-        flightDrawers[i].drawHighlighted(getGraphics());
+        if (i>=0 && i<flightDrawers.length)
+          flightDrawers[i].drawHighlighted(getGraphics());
   }
   
   protected void showSectorVisitAggregates(Graphics g) {
