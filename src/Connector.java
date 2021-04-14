@@ -10,7 +10,7 @@ import java.util.Vector;
 
 public class Connector {
 
-  public void Connector(Vector<Record> records[]) {
+  public static void Connector(Vector<Record> records[]) {
     SectorSet sectorsBaseline=new SectorSet();
     sectorsBaseline.addFlightData(records[0]);
     SectorSet sectorsSolution=null;
