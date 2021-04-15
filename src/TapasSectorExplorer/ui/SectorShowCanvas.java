@@ -1081,12 +1081,20 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     if (isFocus)
       txt+=s.getNFlights()+" flights "+
                "during time range "+s.tFirst+".."+s.tLast+"<br>";
-    else
-      txt+=s.getNFlights()+" flights "+((isBeforeFocus)?"go to":"come from")+
-               " sector "+sInFocus.sectorId+"<br>during "+
-               "time range "+s.tFirst+".."+s.tLast+";<br>"+
-               sFull.getNFlights()+" flights crossed this sector in total<br>" +
-               "during time range "+sFull.tFirst+".."+sFull.tLast+"<br>";
+    else {
+      txt += s.getNFlights() + " flights " + ((isBeforeFocus) ? "go directly to" : "come directly from");
+      txt+=" sector " + sInFocus.sectorId + "<br>during " +
+           "time range " + s.tFirst + ".." + s.tLast + "<br>";
+      ArrayList sList=(isBeforeFocus)?fromSorted:toSorted;
+      int idx=sList.indexOf(s);
+      int n=(idx<0)?0:(isBeforeFocus)?nComeFrom[idx]:nGoTo[idx];
+      n-=s.getNFlights();
+      if (n>0)
+        txt+=n+" flights " + ((isBeforeFocus) ? "go indirectly to" : "come indirectly from")+
+            " sector "+sInFocus.sectorId+"<br>";
+      txt+=sFull.getNFlights() + " flights in total visited this sector<br>" +
+           "during time range " + sFull.tFirst + ".." + sFull.tLast + "<br>";
+    }
     txt+="capacity = "+sFull.capacity+" flights per hour";
   
     int tStep=sFull.getAggregationTimeStep();
@@ -1255,6 +1263,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
           selectStaying(sector,t1,t2);
         }
       });
+      //todo: for "before" and "after" sectors, select flights going directly/indirectly to/from focus sector
       if (mitDeselect!=null) {
         popupMenu.addSeparator();
         popupMenu.add(mitDeselect);

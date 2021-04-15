@@ -5,6 +5,7 @@ import TapasSectorExplorer.data_manage.ScenarioDistinguisher;
 
 import java.awt.*;
 import java.time.LocalTime;
+import java.util.ArrayList;
 
 public class ComparisonCanvas extends SectorShowCanvas {
   public ScenarioDistinguisher scDiff=null;
@@ -80,12 +81,20 @@ public class ComparisonCanvas extends SectorShowCanvas {
     if (isFocus)
       txt+=s.getNFlights()+" modified flights "+
                "during time range "+s.tFirst+".."+s.tLast+"<br>";
-    else
-      txt+=s.getNFlights()+" modified flights "+((isBeforeFocus)?"go to":"come from")+
-               " sector "+sInFocus.sectorId+"<br>during "+
-               "time range "+s.tFirst+".."+s.tLast+";<br>"+
-               sFull.getNFlights()+" modified flights crossed this sector in total<br>" +
-               "during time range "+sFull.tFirst+".."+sFull.tLast+"<br>";
+    else {
+      txt += s.getNFlights() + " modified flights " + ((isBeforeFocus) ? "go directly to" : "come directly from") +
+                 " sector " + sInFocus.sectorId + "<br>during " +
+                 "time range " + s.tFirst + ".." + s.tLast + "<br>";
+      ArrayList sList=(isBeforeFocus)?fromSorted:toSorted;
+      int idx=sList.indexOf(s);
+      int n=(idx<0)?0:(isBeforeFocus)?nComeFrom[idx]:nGoTo[idx];
+      n-=s.getNFlights();
+      if (n>0)
+        txt+=n+" flights " + ((isBeforeFocus) ? "go indirectly to" : "come indirectly from")+
+                 " sector "+sInFocus.sectorId+"<br>";
+      txt+=sFull.getNFlights() + " modified flights in total visited this sector<br>" +
+               "during time range " + sFull.tFirst + ".." + sFull.tLast + "<br>";
+    }
     txt+="capacity = "+sFull.capacity+" flights per hour";
     
     OneSectorData s1=scDiff.scenario1.getSectorData(s.sectorId),
@@ -136,4 +145,6 @@ public class ComparisonCanvas extends SectorShowCanvas {
     txt+="</body></html>";
     return txt;
   }
+  
+  //todo: generate a description of a flight showing data from two scenarios
 }
