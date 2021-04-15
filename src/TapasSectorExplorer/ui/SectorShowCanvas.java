@@ -272,6 +272,12 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     getPreviousAndNextSectors();
     off_Valid=false;
     selection_Valid=false;
+  
+    flightDrawers=new FlightDrawer[sInFocus.sortedFlights.size()];
+    for (int i=0; i<flightDrawers.length; i++) {
+      flightDrawers[i]=new FlightDrawer();
+      flightDrawers[i].flightId=sInFocus.sortedFlights.get(i).flightId;
+    }
     redraw();
   }
   
@@ -530,7 +536,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       g.fillRect(0,y,w,hOther);
     }
     
-    if (flightDrawers==null) {
+    if (flightDrawers==null || flightDrawers.length!=sInFocus.sortedFlights.size()) {
       flightDrawers=new FlightDrawer[sInFocus.sortedFlights.size()];
       for (int i=0; i<flightDrawers.length; i++) {
         flightDrawers[i]=new FlightDrawer();
@@ -830,7 +836,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
   }
   
   public ArrayList<String> getSelectedVisibleObjectIds() {
-    if (selectedObjIds==null || selectedObjIds.isEmpty())
+    if (flightDrawers==null || selectedObjIds==null || selectedObjIds.isEmpty())
       return null;
     ArrayList<String> drawn= new ArrayList<String>(selectedObjIds.size());
     for (int i=0; i<flightDrawers.length && drawn.size()<selectedObjIds.size(); i++)

@@ -359,7 +359,11 @@ public class SelectedFlightsInfoShow extends JPanel
       JCheckBox cb=(JCheckBox)e.getSource();
       if (!cb.isSelected()) {
         keepScrollPosition=true;
-        sendActionEvent("deselect_object:" + cb.getText());
+        String id=cb.getText();
+        int idx=id.indexOf(" (");
+        if (idx>0)
+          id=id.substring(0,idx);
+        sendActionEvent("deselect_object:" + id);
       }
     }
   }
