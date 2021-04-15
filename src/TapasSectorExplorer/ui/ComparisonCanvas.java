@@ -45,7 +45,7 @@ public class ComparisonCanvas extends SectorShowCanvas {
     int maxBH=fullH-2;
     int yAxis=(max<=0)?1:(min>=0)?maxBH+1:Math.round(((float)maxBH)/(max-min)*max);
     yAxis+=y0;
-    g.setColor(Color.white);
+    g.setColor(new Color(255,255,255,128));
     g.drawLine(0,yAxis,fullW,yAxis);
     
     for (int j = 0; j < fCounts.length; j++)

@@ -168,11 +168,6 @@ public class SectorShowPanel extends JPanel
     bFullRange.setEnabled(false);
     pp.add(bFullRange);
   
-    pp.add(Box.createRigidArea(new Dimension(10, 0)));
-    cbShowOnlySelected=new JCheckBox("Show only selected flights",false);
-    cbShowOnlySelected.addItemListener(this);
-    pp.add(cbShowOnlySelected);
-  
     p=new JPanel(new FlowLayout(FlowLayout.CENTER,20,2));
     bp.add(p);
   
@@ -254,12 +249,20 @@ public class SectorShowPanel extends JPanel
     p=new JPanel(new BorderLayout());
     p.add(scp,BorderLayout.CENTER);
     
+    pp=new JPanel(new GridLayout(0,1,0,0));
+    p.add(pp,BorderLayout.NORTH);
     labSelFlights=new JLabel("0 flights selected",JLabel.CENTER);
-    p.add(labSelFlights,BorderLayout.NORTH);
+    pp.add(labSelFlights);
     labSelFlights.addMouseListener(this);
     labSelFlights.setToolTipText("Press right mouse button to put selected flights to clipboard");
     ToolTipManager.sharedInstance().registerComponent(labSelFlights);
     ToolTipManager.sharedInstance().setDismissDelay(Integer.MAX_VALUE);
+  
+    bp=new JPanel(new FlowLayout(FlowLayout.CENTER,0,0));
+    pp.add(bp);
+    cbShowOnlySelected=new JCheckBox("Show only selected flights",false);
+    cbShowOnlySelected.addItemListener(this);
+    bp.add(cbShowOnlySelected);
     
     JSplitPane spl=new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,mainP,p);
     add(spl,BorderLayout.CENTER);
@@ -269,6 +272,15 @@ public class SectorShowPanel extends JPanel
     sectorSelections.add(chSectors.getSelectedIndex());
     //setPreferredSize(new Dimension(canvas.getPreferredSize().width+150,
         //canvas.getPreferredSize().height+50));
+  }
+  
+  public void putSectorInFocus(String sectorId) {
+    int sIdx=-1;
+    for (int i = 0; i< sectorList.size() && sIdx<0; i++)
+      if (sectorId.equals(sectorList.get(i).sectorId))
+        sIdx=i;
+    if (sIdx>=0 && sIdx!=chSectors.getSelectedIndex())
+      chSectors.setSelectedIndex(sIdx);
   }
   
   public SectorShowCanvas getVisibleCanvas() {
@@ -469,7 +481,10 @@ public class SectorShowPanel extends JPanel
       String txt = ((selected == null) ? "0" : Integer.toString(selected.size())) + " flights selected; " +
                        ((visible == null) ? "0" : Integer.toString(visible.size())) + " visible";
       labSelFlights.setText(txt);
-      labSelFlights.setSize(labSelFlights.getPreferredSize());
+      //labSelFlights.setSize(labSelFlights.getPreferredSize());
+      labSelFlights.invalidate();
+      labSelFlights.getParent().invalidate();
+      labSelFlights.getParent().validate();
     }
   }
   public void itemStateChanged(ItemEvent e) {

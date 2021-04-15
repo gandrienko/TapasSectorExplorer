@@ -140,6 +140,46 @@ public class SectorSet {
     return flights.get(flightId);
   }
   /**
+   * Returns the identifiers of the flights that visit the first sector before
+   * the second one, possibly, with intermediate sector visits in between.
+   */
+  public HashSet<String> getIdsOfFlightsFromTo(String idSector1, String idSector2) {
+    if (idSector1==null || idSector2==null || idSector1.equals(idSector2))
+      return null;
+    OneSectorData s1=getSectorData(idSector1);
+    if (s1==null || s1.getNFlights()<1)
+      return null;
+    OneSectorData s2=getSectorData(idSector2);
+    if (s2==null || s2.getNFlights()<1)
+      return null;
+    HashSet<String> fIds=new HashSet<String>(100);
+    for (int i=0; i<s1.sortedFlights.size(); i++) {
+      FlightInSector f=s1.sortedFlights.get(i);
+      if (fIds.contains(f.flightId))
+        continue;
+      if (idSector2.equals(f.nextSectorId))
+        fIds.add(f.flightId);
+      else {
+        FlightInSector f2 = s2.getFlightData(f.flightId, null, f.exitTime);
+        if (f2 != null)
+          fIds.add(f.flightId);
+      }
+    }
+    if (!fIds.isEmpty())
+      return fIds;
+    return null;
+  }
+  /**
+   * Returns the number of the flights that visit the first sector before
+   * the second one, possibly, with intermediate sector visits in between.
+   */
+  public int getNOfFlightsFromTo(String idSector1, String idSector2) {
+    HashSet<String> fIds=getIdsOfFlightsFromTo(idSector1,idSector2);
+    if (fIds==null)
+      return 0;
+    return fIds.size();
+  }
+  /**
    * Gets sector capacities from the given data store
    */
   public boolean getSectorCapacities(DataStore capData) {
