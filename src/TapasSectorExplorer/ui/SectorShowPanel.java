@@ -29,7 +29,7 @@ public class SectorShowPanel extends JPanel
   /**
    * List of sectors ordered by their identifiers
    */
-  protected ArrayList<OneSectorData> sortedSectors=null;
+  protected ArrayList<OneSectorData> sectorList =null;
   /**
    * Used for selection of the sector in focus
    */
@@ -94,22 +94,38 @@ public class SectorShowPanel extends JPanel
     JPanel bp=new JPanel(new GridLayout(0,1));
     mainP.add(bp,BorderLayout.SOUTH);
 
-    sortedSectors=SectorSet.getSectorList(scenarios);
+    sectorList =SectorSet.getSectorList(scenarios);
     chSectors=new JComboBox();
     chSectors.addActionListener(this);
     
-    int maxNFlights=0;
-    int maxIdx=-1;
-    for (int i=0; i<sortedSectors.size(); i++) {
-      OneSectorData s=sortedSectors.get(i);
-      int nFlights=s.getNFlights();
-      chSectors.addItem(s.sectorId+" ("+nFlights+" flights)");
+    int maxNFlights=0, maxNChanged=0;
+    int maxIdx=-1, maxChangeIdx=-1;
+    for (int i = 0; i< sectorList.size(); i++) {
+      OneSectorData s= sectorList.get(i);
+      int nFlights=s.getNFlights(), nChanged=0;
+      if (scDiff!=null) {
+        OneSectorData sDiff=scDiff.getSectorData(s.sectorId);
+        if (sDiff!=null)
+          nChanged=sDiff.getNFlights();
+      }
+      String txt=s.sectorId+" ("+nFlights+" flights";
+      if (nChanged>0)
+        txt+=", modified: "+nChanged;
+      txt+=")";
+      chSectors.addItem(txt);
+      if (nChanged>maxNChanged) {
+        maxNChanged=nChanged;
+        maxChangeIdx=i;
+      }
       if (maxNFlights<nFlights) {
         maxNFlights=nFlights;
         maxIdx=i;
       }
     }
-    chSectors.setSelectedIndex(maxIdx);
+    if (maxChangeIdx>=0)
+      chSectors.setSelectedIndex(maxChangeIdx);
+    else
+      chSectors.setSelectedIndex(maxIdx);
     
     JPanel p=new JPanel(new BorderLayout(10,2));
     bp.add(p);
@@ -204,7 +220,7 @@ public class SectorShowPanel extends JPanel
     JTabbedPane tabbedPane = (nViews>1)?new JTabbedPane():null;
     if (tabbedPane!=null)
       mainP.add(tabbedPane,BorderLayout.CENTER);
-    String focusSectorId=sortedSectors.get(maxIdx).sectorId;
+    String focusSectorId= sectorList.get(maxIdx).sectorId;
     for (int i=0; i<scenarios.length; i++) {
       sectorsFlightsViews[i]=new SectorShowCanvas(scenarios[i]);
       sectorsFlightsViews[i].setFocusSector(focusSectorId);
@@ -222,6 +238,7 @@ public class SectorShowPanel extends JPanel
       sectorsFlightsViews[idx].setFocusSector(focusSectorId);
       sectorsFlightsViews[idx].addActionListener(this);
       tabbedPane.addTab("differences", sectorsFlightsViews[idx]);
+      tabbedPane.setSelectedIndex(idx);
     }
   
     flInfoPanel=new SelectedFlightsInfoShow(scenarios[0]);
@@ -298,7 +315,7 @@ public class SectorShowPanel extends JPanel
           backButton.setEnabled(true);
       }
       for (int i = 0; i< sectorsFlightsViews.length; i++)
-        sectorsFlightsViews[i].setFocusSector(sortedSectors.get(selIdx).sectorId);
+        sectorsFlightsViews[i].setFocusSector(sectorList.get(selIdx).sectorId);
       flInfoPanel.setCurrentSectors(shownCanvas.getFocusSectorId(),
           shownCanvas.getFromSectorIds(), shownCanvas.getToSectorIds());
       flInfoPanel.setSelectedFlights(shownCanvas.getSelectedObjectIds(),
@@ -350,8 +367,8 @@ public class SectorShowPanel extends JPanel
       if (cmd.startsWith("select_sector:")) {
         cmd=cmd.substring(14);
         int sIdx=-1;
-        for (int i=0; i<sortedSectors.size() && sIdx<0; i++)
-          if (cmd.equals(sortedSectors.get(i).sectorId))
+        for (int i = 0; i< sectorList.size() && sIdx<0; i++)
+          if (cmd.equals(sectorList.get(i).sectorId))
             sIdx=i;
         if (sIdx>=0 && sIdx!=chSectors.getSelectedIndex())
           chSectors.setSelectedIndex(sIdx);
