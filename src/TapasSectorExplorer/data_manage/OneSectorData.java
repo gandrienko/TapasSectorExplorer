@@ -72,6 +72,36 @@ public class OneSectorData {
     return sortedFlights.size();
   }
   
+  public int getNFlightsGoingTo(String sectorId) {
+    if (sortedFlights==null)
+      return 0;
+    int n=0;
+    for (int i=0; i<sortedFlights.size(); i++) {
+      String sId=sortedFlights.get(i).nextSectorId;
+      if (sId==null)
+        if (sectorId==null) ++n;
+        else;
+      else
+        if (sId.equals(sectorId)) ++n;
+    }
+    return n;
+  }
+  
+  public int getNFlightsComingFrom(String sectorId) {
+    if (sortedFlights==null)
+      return 0;
+    int n=0;
+    for (int i=0; i<sortedFlights.size(); i++) {
+      String sId=sortedFlights.get(i).prevSectorId;
+      if (sId==null)
+        if (sectorId==null) ++n;
+        else;
+      else
+        if (sId.equals(sectorId)) ++n;
+    }
+    return n;
+  }
+  
   /**
    * @param binWidth - always in minutes
    */

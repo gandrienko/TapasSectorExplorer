@@ -5,11 +5,12 @@ import TapasSectorExplorer.ui.SectorShowPanel;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.Hashtable;
 import java.util.Vector;
 
 public class Connector {
 
-  public Connector (Vector<Record> records[]) {
+  public Connector (Vector<Record> records[], Hashtable<String,Integer> capacities) {
     SectorSet sectorsBaseline=new SectorSet();
     sectorsBaseline.addFlightData(records[0]);
     SectorSet sectorsSolution=null;
@@ -17,7 +18,21 @@ public class Connector {
       sectorsSolution=new SectorSet();
       sectorsSolution.addFlightData(records[1]);
     }
-    // capacities ...
+    
+    for (String key:capacities.keySet()) {
+      int cap=capacities.get(key);
+      if (cap<999 && cap>0) {
+        OneSectorData s=sectorsBaseline.getSectorData(key);
+        if (s!=null)
+          s.capacity=cap;
+        if (sectorsSolution!=null) {
+          s=sectorsSolution.getSectorData(key);
+          if (s!=null)
+            s.capacity=cap;
+        }
+      }
+    
+    }
 
     SectorSet scenarios[]=new SectorSet[(sectorsSolution==null)?1:2];
     scenarios[0]=sectorsBaseline;
