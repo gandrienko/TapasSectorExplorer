@@ -89,10 +89,10 @@ public class SectorShowPanel extends JPanel
         scDiff=null;
     }
     
-    JPanel mainP=new JPanel(new BorderLayout());
+    setLayout(new BorderLayout());
     
     JPanel bp=new JPanel(new GridLayout(0,1));
-    mainP.add(bp,BorderLayout.SOUTH);
+    add(bp,BorderLayout.SOUTH);
 
     sectorList =SectorSet.getSectorList(scenarios);
     chSectors=new JComboBox();
@@ -134,14 +134,14 @@ public class SectorShowPanel extends JPanel
     p.add(pp,BorderLayout.WEST);
     pp.add(new JLabel("Sectors:"));
     pp.add(chSectors);
-    backButton=new JButton("show previous");
+    backButton=new JButton("back to previous");
     backButton.setActionCommand("back");
     backButton.setEnabled(false);
     backButton.addActionListener(this);
     pp.add(backButton);
   
     pp.add(Box.createRigidArea(new Dimension(10, 0)));
-    pp.add(new JLabel("Show time interval:"));
+    pp.add(new JLabel("Time:"));
 
     timeFocuser=new RangeSlider();
     timeFocuser.setPreferredSize(new Dimension(240,timeFocuser.getPreferredSize().height));
@@ -162,7 +162,7 @@ public class SectorShowPanel extends JPanel
   
     pp=new JPanel(new FlowLayout(FlowLayout.LEFT,5,2));
     p.add(pp,BorderLayout.EAST);
-    bFullRange=new JButton("Restore full range");
+    bFullRange=new JButton("Full range");
     bFullRange.setActionCommand("full_time_range");
     bFullRange.addActionListener(this);
     bFullRange.setEnabled(false);
@@ -216,11 +216,13 @@ public class SectorShowPanel extends JPanel
     if (scDiff!=null)
       ++nViews;
     
+    JPanel mainP=new JPanel(new BorderLayout());
+    
     sectorsFlightsViews =new SectorShowCanvas[nViews];
     JTabbedPane tabbedPane = (nViews>1)?new JTabbedPane():null;
     if (tabbedPane!=null)
       mainP.add(tabbedPane,BorderLayout.CENTER);
-    String focusSectorId= sectorList.get(maxIdx).sectorId;
+    String focusSectorId= sectorList.get(chSectors.getSelectedIndex()).sectorId;
     for (int i=0; i<scenarios.length; i++) {
       sectorsFlightsViews[i]=new SectorShowCanvas(scenarios[i]);
       sectorsFlightsViews[i].setFocusSector(focusSectorId);
@@ -260,12 +262,11 @@ public class SectorShowPanel extends JPanel
     ToolTipManager.sharedInstance().setDismissDelay(Integer.MAX_VALUE);
     
     JSplitPane spl=new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,mainP,p);
-    setLayout(new BorderLayout());
     add(spl,BorderLayout.CENTER);
     spl.setDividerLocation(sectorsFlightsViews[0].getPreferredSize().width);
   
     sectorSelections=new ArrayList<Integer>(100);
-    sectorSelections.add(maxIdx);
+    sectorSelections.add(chSectors.getSelectedIndex());
     //setPreferredSize(new Dimension(canvas.getPreferredSize().width+150,
         //canvas.getPreferredSize().height+50));
   }

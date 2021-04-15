@@ -25,7 +25,7 @@ public class Connector {
       scenarios[1]=sectorsSolution;
 
     JFrame frame = new JFrame("TAPAS Sector Explorer");
-    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
     SectorShowPanel sectorShow=new SectorShowPanel(scenarios);
     frame.getContentPane().add(sectorShow, BorderLayout.CENTER);
     //Display the window.
