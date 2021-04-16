@@ -974,6 +974,14 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     redraw();
   }
   
+  public void clearSelection() {
+    selectedObjIds.clear();
+    selection_Valid=false;
+    if (showOnlySelectedFlights)
+      off_Valid=false;
+    redraw();
+  }
+  
   public void selectEntering(OneSectorData sector, LocalTime t1, LocalTime t2){
     if (sector==null || t1==null || t2==null || t1.compareTo(t2)>=0)
       return;
@@ -1024,6 +1032,38 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
         newSelection.add(flight.flightId);
     }
     selectFlights(newSelection);
+  }
+  
+  public void selectFromTo(OneSectorData s1, OneSectorData s2,boolean direct,
+                           LocalTime t1, LocalTime t2, boolean applyTimeLimitsToExits) {
+    if (s1==null || s2==null || s1.getNFlights()<1 || s2.getNFlights()<1)
+      return;
+    HashSet<String> fIds=new HashSet<String>(100);
+    for (FlightInSector f:s1.sortedFlights) {
+      if (fIds.contains(f.flightId))
+        continue;
+      if (t1!=null && t2!=null) {
+        if (f.entryTime.compareTo(t2) >= 0)
+          break;
+        if (applyTimeLimitsToExits && (f.exitTime.compareTo(t1)<0 || f.exitTime.compareTo(t2)>=0))
+          continue;
+      }
+      if (s2.sectorId.equals(f.nextSectorId)) {
+        if (!direct)
+          continue;
+        if (t1==null || applyTimeLimitsToExits) {
+          fIds.add(f.flightId);
+          continue;
+        }
+      }
+      FlightInSector fNext=s2.getFlightData(f.flightId,null,f.exitTime);
+      if (fNext==null)
+        continue;;
+      if (t1==null || applyTimeLimitsToExits ||
+              (fNext.entryTime.compareTo(t1)>=0 && fNext.entryTime.compareTo(t2)<0))
+        fIds.add(f.flightId);
+    }
+    selectFlights(fIds);
   }
   
   public String getFlightInfoText(int fIdx) {
@@ -1191,16 +1231,12 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       return;
     if (e.getButton()>MouseEvent.BUTTON1) {
       JMenuItem mitDeselect=(selectedObjIds!=null && !selectedObjIds.isEmpty())?
-                             new JMenuItem("Deselect all flights"):null;
+                             new JMenuItem("Unselect all flights"):null;
       if (mitDeselect!=null)
         mitDeselect.addActionListener(new ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
-            selectedObjIds.clear();
-            selection_Valid=false;
-            if (showOnlySelectedFlights)
-              off_Valid=false;
-            redraw();
+            clearSelection();
             popupMenu=null;
             sendActionEvent("object_selection");
           }
@@ -1223,12 +1259,20 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       LocalTime t1=LocalTime.of(m1/60,m1%60,0),
           t2=LocalTime.of(m2/60,m2%60,0);
       popupMenu=new JPopupMenu();
-      popupMenu.add("Sector "+sector.sectorId);
-      popupMenu.add("Time interval "+t1+".."+t2);
+      JMenuItem mit;
+      Color c=new Color(255,255,192);
+      popupMenu.add(mit=new JMenuItem("<html><font size=+1 color=blue><center>Sector "+sector.sectorId+"</html"));
+      mit.setBackground(c);
+      mit.setEnabled(false);
+      popupMenu.add(mit=new JMenuItem("Time interval "+t1+".."+t2));
+      mit.setEnabled(false);
+      mit.setBackground(c);
       popupMenu.addSeparator();
-      popupMenu.add("Select flights:");
-      JMenuItem mit=new JMenuItem("entering the sector");
-      popupMenu.add(mit);
+      popupMenu.add(mit=new JMenuItem("Select flights in this interval:"));
+      mit.setEnabled(false);
+      c=new Color(192,255,255);
+      mit.setBackground(c);
+      popupMenu.add(mit=new JMenuItem("entering the sector"));
       mit.addActionListener(new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
@@ -1236,8 +1280,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
           selectEntering(sector,t1,t2);
         }
       });
-      mit=new JMenuItem("being in the sector");
-      popupMenu.add(mit);
+      popupMenu.add(mit=new JMenuItem("being in the sector"));
       mit.addActionListener(new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
@@ -1245,8 +1288,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
           selectVisiting(sector,t1,t2);
         }
       });
-      mit=new JMenuItem("exiting the sector");
-      popupMenu.add(mit);
+      popupMenu.add(mit=new JMenuItem("exiting the sector"));
       mit.addActionListener(new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
@@ -1254,8 +1296,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
           selectExiting(sector,t1,t2);
         }
       });
-      mit=new JMenuItem("not exiting the sector");
-      popupMenu.add(mit);
+      popupMenu.add(mit=new JMenuItem("not exiting the sector"));
       mit.addActionListener(new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
@@ -1263,11 +1304,76 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
           selectStaying(sector,t1,t2);
         }
       });
-      //todo: for "before" and "after" sectors, select flights going directly/indirectly to/from focus sector
+      //for "before" and "after" sectors, select flights going directly/indirectly to/from focus sector
+      if (is[0]!=0) {
+        String prefix1=(is[0]<0)?"exiting to":"entering from",
+            prefix2=(is[0]<0)?"going to":"coming from";
+        String strSector=" sector "+sInFocus.sectorId;
+        popupMenu.add(mit=new JMenuItem(prefix1+strSector+" directly"));
+        mit.addActionListener(new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent e) {
+            popupMenu=null;
+            if (is[0]<0)
+              selectFromTo(sector,sInFocus,true,t1,t2,true);
+            else
+              selectFromTo(sInFocus,sector,true,t1,t2,false);
+          }
+        });
+        popupMenu.add(mit=new JMenuItem(prefix2+strSector+" indirectly"));
+        mit.addActionListener(new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent e) {
+            popupMenu=null;
+            if (is[0]<0)
+              selectFromTo(sectors.getSectorData(sector.sectorId),sInFocus,false,
+                  t1,t2,true);
+            else
+              selectFromTo(sInFocus,sectors.getSectorData(sector.sectorId),false,
+                  t1,t2,false);
+          }
+        });
+        popupMenu.addSeparator();
+        popupMenu.add(mit=new JMenuItem("Select flights in the whole time range:"));
+        mit.setEnabled(false);
+        mit.setBackground(c);
+        popupMenu.add(mit=new JMenuItem(prefix1+strSector+" directly"));
+        mit.addActionListener(new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent e) {
+            popupMenu=null;
+            if (is[0]<0)
+              selectFromTo(sector,sInFocus,true,null,null,false);
+            else
+              selectFromTo(sInFocus,sector,true,null,null,false);
+          }
+        });
+        popupMenu.add(mit=new JMenuItem(prefix2+strSector+" indirectly"));
+        mit.addActionListener(new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent e) {
+            popupMenu=null;
+            if (is[0]<0)
+              selectFromTo(sectors.getSectorData(sector.sectorId),sInFocus,false,
+                  null,null,false);
+            else
+              selectFromTo(sInFocus,sectors.getSectorData(sector.sectorId),false,
+                  null,null,false);
+          }
+        });
+      }
       if (mitDeselect!=null) {
         popupMenu.addSeparator();
         popupMenu.add(mitDeselect);
       }
+      popupMenu.addSeparator();
+      popupMenu.add(mit=new JMenuItem("Cancel"));
+      mit.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          popupMenu=null;
+        }
+      });
       popupMenu.show(this,e.getX(),e.getY());
     }
     else {

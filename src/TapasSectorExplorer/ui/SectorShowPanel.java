@@ -55,7 +55,7 @@ public class SectorShowPanel extends JPanel
    */
   protected RangeSlider timeFocuser=null;
   protected JTextField tfTStart=null, tfTEnd=null;
-  protected JButton bFullRange=null;
+  protected JButton bFullRange=null, bUnselect=null;
   /**
    * Controls for highlighting excesses of capacity
    */
@@ -258,11 +258,16 @@ public class SectorShowPanel extends JPanel
     ToolTipManager.sharedInstance().registerComponent(labSelFlights);
     ToolTipManager.sharedInstance().setDismissDelay(Integer.MAX_VALUE);
   
-    bp=new JPanel(new FlowLayout(FlowLayout.CENTER,0,0));
+    bp=new JPanel(new FlowLayout(FlowLayout.CENTER,20,0));
     pp.add(bp);
-    cbShowOnlySelected=new JCheckBox("Show only selected flights",false);
+    cbShowOnlySelected=new JCheckBox("Show only selected",false);
     cbShowOnlySelected.addItemListener(this);
     bp.add(cbShowOnlySelected);
+    bUnselect=new JButton("Unselect all");
+    bUnselect.addActionListener(this);
+    bUnselect.setActionCommand("unselect_all");
+    bUnselect.setEnabled(false);
+    bp.add(bUnselect);
     
     JSplitPane spl=new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,mainP,p);
     add(spl,BorderLayout.CENTER);
@@ -421,6 +426,15 @@ public class SectorShowPanel extends JPanel
         for (int i = 0; i< sectorsFlightsViews.length; i++)
           sectorsFlightsViews[i].setMarkedObjIds(fIds);
       }
+      bUnselect.setEnabled(sectorsFlightsViews!=null && sectorsFlightsViews[0].hasSelectedObjects());
+    }
+    else
+    if (ae.getActionCommand().equals("unselect_all")) {
+      if (sectorsFlightsViews!=null)
+        for (int i = 0; i< sectorsFlightsViews.length; i++)
+          sectorsFlightsViews[i].clearSelection();
+      flInfoPanel.setSelectedFlights(null, null);
+      bUnselect.setEnabled(false);
     }
     else
     if (ae.getSource() instanceof JTextField)  {
