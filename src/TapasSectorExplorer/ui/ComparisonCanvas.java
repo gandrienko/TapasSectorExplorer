@@ -77,8 +77,8 @@ public class ComparisonCanvas extends SectorShowCanvas {
     OneSectorData sFull=(isFocus)?sInFocus:sectors.getSectorData(s.sectorId);
     
     String txt="<html><body style=background-color:rgb(255,255,204)>"+
-                   "Time = "+t+"<br>"+
-                   "Sector "+s.sectorId+":<br>";
+                   "<font size=+1>Sector "+s.sectorId+"</font><br>"+
+                   "Time = "+t+"<br>";
     
     if (isFocus)
       txt+=s.getNFlights()+" modified flights "+

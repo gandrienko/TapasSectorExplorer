@@ -1121,27 +1121,35 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     OneSectorData sFull=(isFocus)?sInFocus:sectors.getSectorData(s.sectorId);
   
     String txt="<html><body style=background-color:rgb(255,255,204)>"+
-                   "Time = "+t+"<br>"+
-                   "Sector "+s.sectorId+":<br>";
+                   "<font size=+1>Sector "+s.sectorId+"</font><br>"+
+                   "Time = "+t+"<br>";
   
+    txt += "<table border=0>";
     if (isFocus)
-      txt+=s.getNFlights()+" flights "+
-               "during time range "+s.tFirst+".."+s.tLast+"<br>";
+      txt+="<tr><td>N of visits:</td><td>"+s.getNFlights()+"</td><td>"+
+               "time range:</td>"+s.tFirst+".."+s.tLast+"</td></tr>";
     else {
-      txt += s.getNFlights() + " flights " + ((isBeforeFocus) ? "go directly to" : "come directly from");
-      txt+=" sector " + sInFocus.sectorId + "<br>during " +
-           "time range " + s.tFirst + ".." + s.tLast + "<br>";
+      txt+="<tr><td>N of "+((isBeforeFocus) ? "going directly to" : "coming directly from")+
+               " sector " + sInFocus.sectorId+":</td>"+s.getNFlights()+"</td><td>"+
+               "time range:</td>"+s.tFirst+".."+s.tLast+"</td></tr>";
+      //txt += s.getNFlights() + " flights " + ((isBeforeFocus) ? "go directly to" : "come directly from");
+      //txt+=" sector " + sInFocus.sectorId + "<br>during " +
+      //     "time range " + s.tFirst + ".." + s.tLast + "<br>";
       ArrayList sList=(isBeforeFocus)?fromSorted:toSorted;
       int idx=sList.indexOf(s);
       int n=(idx<0)?0:(isBeforeFocus)?nComeFrom[idx]:nGoTo[idx];
       n-=s.getNFlights();
       if (n>0)
-        txt+=n+" flights " + ((isBeforeFocus) ? "go indirectly to" : "come indirectly from")+
-            " sector "+sInFocus.sectorId+"<br>";
-      txt+=sFull.getNFlights() + " flights in total visited this sector<br>" +
-           "during time range " + sFull.tFirst + ".." + sFull.tLast + "<br>";
+        //txt+=n+" flights " + ((isBeforeFocus) ? "go indirectly to" : "come indirectly from")+
+        //    " sector "+sInFocus.sectorId+"<br>";
+        txt+="<tr><td>N of "+((isBeforeFocus) ? "going indirectly to" : "coming indirectly from")+
+                 " sector " + sInFocus.sectorId+":</td>"+n+"</td></tr>";
+      //txt+=sFull.getNFlights() + " flights in total visited this sector<br>" +
+           //"during time range " + sFull.tFirst + ".." + sFull.tLast + "<br>";
+      txt+="<tr><td>N of visits total:</td><td>"+sFull.getNFlights()+"</td><td>"+
+               "time range:</td>"+sFull.tFirst+".."+sFull.tLast+"</td></tr>";
     }
-    txt+="capacity = "+sFull.capacity+" flights per hour";
+    txt+="<tr><td>Sector capacity:</td><td>"+sFull.capacity+"</td><td>flights per hour</td></tr>";
   
     int tStep=sFull.getAggregationTimeStep();
     int counts[]=sFull.getHourlyFlightCounts(tStep);
@@ -1150,12 +1158,13 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       if (idx>=0 && idx<counts.length) {
         LocalTime tt[]=sFull.getTimeBinRange(idx,tStep);
         if (tt!=null) {
-          txt += "<br>time bin: "+tt[0]+".."+tt[1]+" (#"+idx+")"+
-                     "<br>Hourly occupancy: " + counts[idx];
+          txt += "<tr><td>Time bin:</td><td>"+tt[0]+".."+tt[1]+"</td><td>(#"+idx+")</td></tr>";
+          txt += "<tr><td>Hourly occupancy:</td><td>" + counts[idx]+"</td></tr>";
           if (counts[idx]>sFull.capacity) {
             int diff=counts[idx]-sFull.capacity;
             float percent=100f*diff/sFull.capacity;
-            txt+="; excess of capacity: "+diff+" flights ("+String.format("%.2f", percent)+"%)";
+            txt+="<tr><td>excess of capacity:</td><td>"+diff+"</td><td>flights</td><td>("+
+                     String.format("%.2f", percent)+"%)</td></tr>";
           }
           counts=sFull.getHourlyEntryCounts(tStep,toIgnoreReEntries);
           if (counts!=null) {
@@ -1170,6 +1179,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       }
     }
   
+    txt+="</table>";
     txt+="</body></html>";
     return txt;
   }
