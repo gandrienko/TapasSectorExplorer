@@ -1,9 +1,12 @@
 package TapasSectorExplorer.data_manage;
 
+import java.time.Duration;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.TreeMap;
+
+import static java.lang.Math.abs;
 
 /**
  * Contains data describing flights visiting one sector
@@ -273,6 +276,38 @@ public class OneSectorData {
               f=sortedFlights.get(i);
     }
     return f;
+  }
+  
+  public FlightInSector getClosestFlight(FlightInSector f) {
+    if (f==null || sortedFlights==null || sortedFlights.isEmpty())
+      return null;
+    if (flights==null || flights.isEmpty())
+      makeFlightIndex();
+    if (flights==null || flights.isEmpty())
+      return null;
+    Integer idx=flights.get(f.flightId);
+    if (idx==null)
+      return null;
+    FlightInSector ff=sortedFlights.get(idx);
+    if (ff==null)
+      return null;
+    if (repeatedVisits==null || !repeatedVisits.contains(f.flightId))
+      return ff;
+    long tDiff1= Duration.between(f.entryTime,ff.entryTime).getSeconds(),
+        tDiff2=Duration.between(f.exitTime,ff.exitTime).getSeconds();
+    long diff=Math.abs(tDiff1)+Math.abs(tDiff2);
+    for (int i=idx+1; i<sortedFlights.size(); i++)
+      if (sortedFlights.get(i).flightId.equals(f.flightId)) {
+        FlightInSector ff2=sortedFlights.get(idx);
+        tDiff1= Duration.between(f.entryTime,ff2.entryTime).getSeconds();
+        tDiff2=Duration.between(f.exitTime,ff2.exitTime).getSeconds();
+        long diff2=Math.abs(tDiff1)+Math.abs(tDiff2);
+        if (diff2<diff) {
+          diff=diff2;
+          ff=ff2;
+        }
+      }
+    return ff;
   }
   
   public FlightInSector[] getAllVisits(String flightId) {

@@ -1066,6 +1066,13 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     selectFlights(fIds);
   }
   
+  public static String sFocusSectorColor =
+      "#"+Integer.toHexString(SectorShowCanvas.focusSectorColor.getRGB()).substring(2);
+  public static String sFromSectorColor =
+      "#"+Integer.toHexString(SectorShowCanvas.fromSectorColor.getRGB()).substring(2);
+  public static String sToSectorColor =
+      "#"+Integer.toHexString(SectorShowCanvas.toSectorColor.getRGB()).substring(2);
+
   public String getFlightInfoText(int fIdx) {
     if (fIdx<0)
       return null;
@@ -1077,31 +1084,30 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       OneSectorData s=fromSectors.getSectorData(f.prevSectorId);
       ff=(s==null)?null:s.getFlightData(f.flightId,f.entryTime,null);
       if (ff!=null) {
-        int r=fromSectorColor.getRed(), g=fromSectorColor.getGreen(), b=fromSectorColor.getBlue();
         if (!bTableSTarted) {
           str += "<table border=0>";
           bTableSTarted=true;
         }
-        str+="<tr style=\"color:rgb("+r+","+g+","+b+")\"><td>Sector "+ff.sectorId+"</td><td>"+
+        str+="<tr style=\"color:"+sFromSectorColor+"\"><td>Sector "+ff.sectorId+"</td><td>"+
                  ff.entryTime+".."+ff.exitTime+"</td></tr>";
       }
     }
-    int r=focusSectorColor.getRed(), g=focusSectorColor.getGreen(), b=focusSectorColor.getBlue();
     if (!bTableSTarted) {
       str += "<table border=0>";
       bTableSTarted=true;
     }
-    str+="<tr style=\"color:rgb("+r+","+g+","+b+")\"><td>Sector "+f.sectorId+"</td><td>"+f.entryTime+".."+f.exitTime+"</td></tr>";
+    str+="<tr style=\"color:"+sFocusSectorColor+"\"><td>Sector "+f.sectorId+"</td><td>"+
+             f.entryTime+".."+f.exitTime+"</td></tr>";
     if (f.nextSectorId!=null && toSectors!=null) {
       OneSectorData s=toSectors.getSectorData(f.nextSectorId);
       ff=(s==null)?null:s.getFlightData(f.flightId,null,f.exitTime);
       if (ff!=null) {
-        r=toSectorColor.getRed(); g=toSectorColor.getGreen(); b=toSectorColor.getBlue();
         if (!bTableSTarted) {
           str += "<table border=0>";
           bTableSTarted=true;
         }
-        str+="<tr style=\"color:rgb("+r+","+g+","+b+")\"><td>Sector "+ff.sectorId+"</td><td>"+ff.entryTime+".."+ff.exitTime+"</td></tr>";
+        str+="<tr style=\"color:"+sToSectorColor+"\"><td>Sector "+ff.sectorId+"</td><td>"+
+                 ff.entryTime+".."+ff.exitTime+"</td></tr>";
       }
     }
     if (bTableSTarted)

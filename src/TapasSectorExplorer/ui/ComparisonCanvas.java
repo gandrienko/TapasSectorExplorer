@@ -1,7 +1,9 @@
 package TapasSectorExplorer.ui;
 
+import TapasSectorExplorer.data_manage.FlightInSector;
 import TapasSectorExplorer.data_manage.OneSectorData;
 import TapasSectorExplorer.data_manage.ScenarioDistinguisher;
+import TapasSectorExplorer.data_manage.SectorSet;
 
 import java.awt.*;
 import java.time.LocalTime;
@@ -146,5 +148,48 @@ public class ComparisonCanvas extends SectorShowCanvas {
     return txt;
   }
   
-  //todo: generate a description of a flight showing data from two scenarios
+  //generate a description of a flight showing data from two scenarios
+  
+  public String getFlightInfoText(int fIdx) {
+    if (fIdx<0)
+      return null;
+    FlightInSector f0=sInFocus.sortedFlights.get(fIdx);
+    ArrayList<FlightInSector> seq1 = scDiff.scenario1.getSectorVisitSequence(f0.flightId),
+                             seq2= scDiff.scenario2.getSectorVisitSequence(f0.flightId);
+    if (seq1 == null || seq1.isEmpty() || seq2==null || seq2.isEmpty() || SectorSet.sameSequence(seq1,seq2))
+      return super.getFlightInfoText(fIdx);
+    String str="<html><body style=background-color:rgb(255,255,204)>"+"Flight <b>"+f0.flightId+"</b><hr>";
+    str += "<table border=0>";
+    str+="<tr><td>Sector:</td><td>Time:</td><td></td><td>Change:</td>";
+    boolean passedFocusSector = false;
+    for (int j = 0; j < seq1.size(); j++) {
+      FlightInSector f = seq1.get(j);
+      String strColor=(sInFocus.sectorId.equals(f.sectorId))?sFocusSectorColor:
+                          (!passedFocusSector && (fromSectors!=null && fromSectors.hasSector(f.sectorId)))?sFromSectorColor:
+                          (passedFocusSector && (toSectors!=null && toSectors.hasSector(f.sectorId)))?sToSectorColor:
+                          ((fromSectors!=null && fromSectors.hasSector(f.sectorId)) ||
+                               (toSectors!=null && toSectors.hasSector(f.sectorId)))?"black":"gray";
+      passedFocusSector=passedFocusSector || sInFocus.sectorId.equals(f.sectorId);
+      str+="<tr style=\"color:"+strColor+"\"><td>"+f.sectorId+"</td><td>"+f.entryTime+".."+f.exitTime+"</td>";
+      if (j<seq2.size()) {
+        FlightInSector fAlt=seq2.get(j);
+        if (!fAlt.equals(f)) {
+          str+="<td>>>></td><td>";
+          if (!fAlt.sectorId.equals(f.sectorId))
+            str+="<font color=\"#BB0000\"><u>"+fAlt.sectorId+"</u></font> ";
+          str+=fAlt.entryTime+".."+fAlt.exitTime+"</td>";
+        }
+      }
+      str+="</tr>";
+    }
+    if (seq2.size()>seq1.size())
+      for (int j=seq1.size(); j<seq2.size(); j++) {
+        FlightInSector fAlt = seq2.get(j);
+        str+="<tr style=\"color:#BB0000\"><td></td><td></td><td></td><u>"+
+                 fAlt.sectorId+"</u> "+fAlt.entryTime+".."+fAlt.exitTime+"</td></tr>";
+      }
+    str+="</table>";
+    str+="</body></html>";
+    return str;
+  }
 }
