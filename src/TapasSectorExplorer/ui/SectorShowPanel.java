@@ -225,7 +225,8 @@ public class SectorShowPanel extends JPanel
       if (i==0)
         chAggrStep.setSelectedItem(Integer.toString(sectorsFlightsViews[i].getAggregationTimeStep()));
       if (tabbedPane!=null)
-        tabbedPane.addTab("scenario "+(i+1), sectorsFlightsViews[i]);
+        tabbedPane.addTab((scenarios[i].name==null)?"scenario "+(i+1):scenarios[i].name,
+            sectorsFlightsViews[i]);
       else
         mainP.add(sectorsFlightsViews[i], BorderLayout.CENTER);
     }
