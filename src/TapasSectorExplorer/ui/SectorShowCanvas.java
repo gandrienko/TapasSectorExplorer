@@ -139,6 +139,8 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
   }
   
   protected void getPreviousAndNextSectors() {
+    fromSectors=toSectors=null;
+    fromSorted=toSorted=null;
     if (sInFocus==null || sInFocus.sortedFlights==null || sInFocus.sortedFlights.isEmpty())
       return;
     if (focusFlightId!=null && !sInFocus.hasFlight(focusFlightId))
@@ -273,11 +275,15 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     off_Valid=false;
     selection_Valid=false;
   
-    flightDrawers=new FlightDrawer[sInFocus.sortedFlights.size()];
-    for (int i=0; i<flightDrawers.length; i++) {
-      flightDrawers[i]=new FlightDrawer();
-      flightDrawers[i].flightId=sInFocus.sortedFlights.get(i).flightId;
+    if (sInFocus.sortedFlights!=null && !sInFocus.sortedFlights.isEmpty()) {
+      flightDrawers = new FlightDrawer[sInFocus.sortedFlights.size()];
+      for (int i = 0; i < flightDrawers.length; i++) {
+        flightDrawers[i] = new FlightDrawer();
+        flightDrawers[i].flightId = sInFocus.sortedFlights.get(i).flightId;
+      }
     }
+    else
+      flightDrawers=null;
     redraw();
   }
   
@@ -493,7 +499,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     int nFrom=(fromSorted==null)?0:fromSorted.size(),
         nTo=(toSorted==null)?0:toSorted.size();
     hFocus=Math.round(0.15f*plotH);
-    hOther=(plotH-hFocus)/(nFrom+nTo);
+    hOther=(nFrom+nTo>0)?(plotH-hFocus)/(nFrom+nTo):30;
     vSpace=Math.round(0.3f*hOther);
     hOther-=vSpace;
     
@@ -536,7 +542,8 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       g.fillRect(0,y,w,hOther);
     }
     
-    if (flightDrawers==null || flightDrawers.length!=sInFocus.sortedFlights.size()) {
+    if (sInFocus.sortedFlights!=null &&
+            (flightDrawers==null || flightDrawers.length!=sInFocus.sortedFlights.size())) {
       flightDrawers=new FlightDrawer[sInFocus.sortedFlights.size()];
       for (int i=0; i<flightDrawers.length; i++) {
         flightDrawers[i]=new FlightDrawer();
@@ -545,65 +552,67 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     }
   
     y=yMarg+hFrom;
-    for (int i=0; i<sInFocus.sortedFlights.size(); i++) {
-      flightDrawers[i].clearPath();
-      FlightInSector f=sInFocus.sortedFlights.get(i);
-      if (showOnlySelectedFlights && (selectedObjIds==null || !selectedObjIds.contains(f.flightId)))
-        continue;
-      ArrayList<FlightInSector> seq=sectors.getSectorVisitSequence(f.flightId);
-      int fIdx=-1;
-      for (int j=0; j<seq.size() && fIdx<0; j++)
-        if (f.equals(seq.get(j)))
-          fIdx=j;
-      int idx1=fIdx, idx2=fIdx;
-      for (int j=fIdx-1; j>=0 && fromSectors.hasSector(seq.get(j).sectorId); j--) {
-        if (j+1<fIdx) {
-          int k1=getSectorIndexInSortedList(seq.get(j).sectorId,fromSorted),
-              k2=getSectorIndexInSortedList(seq.get(j+1).sectorId,fromSorted);
-          if (k1<=k2)
-            break;
+    if (sInFocus.sortedFlights!=null)
+      for (int i=0; i<sInFocus.sortedFlights.size(); i++) {
+        flightDrawers[i].clearPath();
+        FlightInSector f=sInFocus.sortedFlights.get(i);
+        if (showOnlySelectedFlights && (selectedObjIds==null || !selectedObjIds.contains(f.flightId)))
+          continue;
+        ArrayList<FlightInSector> seq=sectors.getSectorVisitSequence(f.flightId);
+        int fIdx=-1;
+        for (int j=0; j<seq.size() && fIdx<0; j++)
+          if (f.equals(seq.get(j)))
+            fIdx=j;
+        int idx1=fIdx, idx2=fIdx;
+        for (int j=fIdx-1; j>=0 && fromSectors.hasSector(seq.get(j).sectorId); j--) {
+          if (j+1<fIdx) {
+            int k1=getSectorIndexInSortedList(seq.get(j).sectorId,fromSorted),
+                k2=getSectorIndexInSortedList(seq.get(j+1).sectorId,fromSorted);
+            if (k1<=k2)
+              break;
+          }
+          idx1 = j;
         }
-        idx1 = j;
-      }
-      for (int j=fIdx+1; j<seq.size() && toSectors.hasSector(seq.get(j).sectorId); j++) {
-        if (j-1>fIdx) {
-          int k1=getSectorIndexInSortedList(seq.get(j-1).sectorId,toSorted),
-              k2=getSectorIndexInSortedList(seq.get(j).sectorId,toSorted);
-          if (k2<=k1)
-            break;
+        for (int j=fIdx+1; j<seq.size() && toSectors.hasSector(seq.get(j).sectorId); j++) {
+          if (j-1>fIdx) {
+            int k1=getSectorIndexInSortedList(seq.get(j-1).sectorId,toSorted),
+                k2=getSectorIndexInSortedList(seq.get(j).sectorId,toSorted);
+            if (k2<=k1)
+              break;
+          }
+          idx2 = j;
         }
-        idx2 = j;
-      }
-      for (int j=idx1; j<=idx2; j++) {
-        FlightInSector ff=seq.get(j);
-        if (j==fIdx)  // path segment in the focus sector
-          flightDrawers[i].addPathSegment(getXPos(ff.entryTime,tWidth)+tMarg,
-              getXPos(ff.exitTime,tWidth)+tMarg,y,y+hFocus,true);
-        else
-        if (j<fIdx)  { // path segment in one of the previous sectors
-          OneSectorData s=fromSectors.getSectorData(ff.sectorId);
-          int sIdx=getSectorIndexInSortedList(s.sectorId,fromSorted);
-          if (sIdx>=0) {
-            int yy=yMarg+(nFrom-sIdx-1)*(hOther+vSpace);
+        for (int j=idx1; j<=idx2; j++) {
+          FlightInSector ff=seq.get(j);
+          if (j==fIdx)  // path segment in the focus sector
             flightDrawers[i].addPathSegment(getXPos(ff.entryTime,tWidth)+tMarg,
-                getXPos(ff.exitTime,tWidth)+tMarg,yy,yy+hOther,false);
+                getXPos(ff.exitTime,tWidth)+tMarg,y,y+hFocus,true);
+          else
+          if (j<fIdx)  { // path segment in one of the previous sectors
+            OneSectorData s=fromSectors.getSectorData(ff.sectorId);
+            int sIdx=getSectorIndexInSortedList(s.sectorId,fromSorted);
+            if (sIdx>=0) {
+              int yy=yMarg+(nFrom-sIdx-1)*(hOther+vSpace);
+              flightDrawers[i].addPathSegment(getXPos(ff.entryTime,tWidth)+tMarg,
+                  getXPos(ff.exitTime,tWidth)+tMarg,yy,yy+hOther,false);
+            }
+          }
+          else { // path segment in one of the following sectors
+            OneSectorData s=toSectors.getSectorData(ff.sectorId);
+            int sIdx=getSectorIndexInSortedList(s.sectorId,toSorted);
+            if (sIdx>=0) {
+              int yy=yMarg+hFrom+hFocus+vSpace+sIdx*(hOther+vSpace);
+              int xx1=getXPos(ff.entryTime,tWidth)+tMarg, xx2=getXPos(ff.exitTime,tWidth)+tMarg;
+              flightDrawers[i].addPathSegment(getXPos(ff.entryTime,tWidth)+tMarg,
+                  getXPos(ff.exitTime,tWidth)+tMarg,yy,yy+hOther,false);
+            }
           }
         }
-        else { // path segment in one of the following sectors
-          OneSectorData s=toSectors.getSectorData(ff.sectorId);
-          int sIdx=getSectorIndexInSortedList(s.sectorId,toSorted);
-          if (sIdx>=0) {
-            int yy=yMarg+hFrom+hFocus+vSpace+sIdx*(hOther+vSpace);
-            int xx1=getXPos(ff.entryTime,tWidth)+tMarg, xx2=getXPos(ff.exitTime,tWidth)+tMarg;
-            flightDrawers[i].addPathSegment(getXPos(ff.entryTime,tWidth)+tMarg,
-                getXPos(ff.exitTime,tWidth)+tMarg,yy,yy+hOther,false);
-          }
-        }
       }
-    }
 
-    for (int i=0; i<flightDrawers.length; i++)
-      flightDrawers[i].draw(g);
+    if (flightDrawers!=null)
+      for (int i=0; i<flightDrawers.length; i++)
+        flightDrawers[i].draw(g);
   
     showSectorVisitAggregates(g);
 
@@ -614,7 +623,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     }
     else
       drawSelected(gr);
-    if (hlIdxs!=null)
+    if (hlIdxs!=null && flightDrawers!=null)
       for (int i:hlIdxs)
         if (i>=0 && i<flightDrawers.length)
           flightDrawers[i].drawHighlighted(getGraphics());
@@ -1127,11 +1136,11 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     txt += "<table border=0 cellmargin=3 cellpadding=1 cellspacing=2>";
     if (isFocus)
       txt+="<tr><td>N of visits:</td><td>"+s.getNFlights()+"</td></tr>"+
-               "<tr><td>Time range:</td>"+s.tFirst+"..</td><td>"+s.tLast+"</td></tr>";
+               "<tr><td>Time range:</td>"+s.tFirst+" ..</td><td>"+s.tLast+"</td></tr>";
     else {
       txt+="<tr><td>N "+((isBeforeFocus) ? "going directly to" : "coming directly from")+
                "</td><td>" + sInFocus.sectorId+":</td>"+s.getNFlights()+"</td></tr>"+
-               "<tr><td>Time range:</td>"+s.tFirst+"..</td><td>"+s.tLast+"</td></tr>";
+               "<tr><td>Time range:</td>"+s.tFirst+" ..</td><td>"+s.tLast+"</td></tr>";
       ArrayList sList=(isBeforeFocus)?fromSorted:toSorted;
       int idx=sList.indexOf(s);
       int n=(idx<0)?0:(isBeforeFocus)?nComeFrom[idx]:nGoTo[idx];
@@ -1140,7 +1149,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
         txt+="<tr><td>N "+((isBeforeFocus) ? "going indirectly to" : "coming indirectly from")+
                  "</td><td>" + sInFocus.sectorId+":</td>"+n+"</td></tr>";
       txt+="<tr><td>N of visits total:</td><td>"+sFull.getNFlights()+"</td></tr>"+
-               "<tr><td>Time range:</td>"+sFull.tFirst+"..</td><td>"+sFull.tLast+"</td></tr>";
+               "<tr><td>Time range:</td>"+sFull.tFirst+" ..</td><td>"+sFull.tLast+"</td></tr>";
     }
     txt+="</table><table border=0 cellmargin=3 cellpadding=1 cellspacing=2>";
     txt+="<tr><td>Sector capacity:</td><td>"+sFull.capacity+"</td><td>flights</td><td>per hour</td></tr>";
@@ -1152,9 +1161,9 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       if (idx>=0 && idx<counts.length) {
         LocalTime tt[]=sFull.getTimeBinRange(idx,tStep);
         if (tt!=null) {
-          txt += "<tr><td>Time bin:</td><td>#"+idx+"</td><td>"+tt[0]+"..</td><td>"+tt[1]+"</td></tr>";
+          txt += "<tr><td>Time bin:</td><td>#"+idx+"</td><td>"+tt[0]+":00 ..</td><td>"+tt[1]+"</td></tr>";
           txt += "<tr><td>Hourly occupancy:</td><td>" + counts[idx]+"</td></tr>";
-          if (counts[idx]>sFull.capacity) {
+          if (sFull.capacity>0 && counts[idx]>sFull.capacity) {
             int diff=counts[idx]-sFull.capacity;
             float percent=100f*diff/sFull.capacity;
             txt+="<tr><td>Excess of capacity:</td><td>"+diff+"</td><td>flights</td><td>("+
@@ -1163,7 +1172,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
           counts=sFull.getHourlyEntryCounts(tStep,toIgnoreReEntries);
           if (counts!=null) {
             txt+="<tr><td>Hourly entries:</td><td>" + counts[idx]+"</td></tr>";
-            if (counts[idx]>sFull.capacity) {
+            if (sFull.capacity>0 && counts[idx]>sFull.capacity) {
               int diff=counts[idx]-sFull.capacity;
               float percent=100f*diff/sFull.capacity;
               txt+="<tr><td>Excess of capacity:</td><td>"+diff+"</td><td>entries</td><td>("+

@@ -29,6 +29,10 @@ public class FlightDrawer {
   public int focusSegmIdx=-1;
   
   public Polygon poly=null;
+  /**
+   * An altered
+   */
+  public FlightDrawer fAltered=null;
   
   public void clearPath() {
     if (screenPath!=null)

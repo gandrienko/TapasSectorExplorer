@@ -80,26 +80,32 @@ public class ComparisonCanvas extends SectorShowCanvas {
                    "<font size=5><center>Sector "+s.sectorId+"</center></font>"+
                    "<center>Time = "+t+"</center>";
   
-    txt += "<table border=0 cellmargin=3 cellpadding=1 cellspacing=2>";
-    txt+="<tr><td><font color=\"#BB0000\"><u>Modified flights</u></font></td></tr>";
-    if (isFocus)
-      txt+="<tr><td>N of flights:</td><td>"+s.getNFlights()+"</td></tr>"+
-               "<tr><td>Time range:</td>"+s.tFirst+"..</td><td>"+s.tLast+"</td></tr>";
-    else {
-      txt+="<tr><td>N "+((isBeforeFocus) ? "going directly to" : "coming directly from")+
-               "</td><td>" + sInFocus.sectorId+":</td>"+s.getNFlights()+"</td></tr>"+
-               "<tr><td>Time range:</td>"+s.tFirst+"..</td><td>"+s.tLast+"</td></tr>";
-      ArrayList sList=(isBeforeFocus)?fromSorted:toSorted;
-      int idx=sList.indexOf(s);
-      int n=(idx<0)?0:(isBeforeFocus)?nComeFrom[idx]:nGoTo[idx];
-      n-=s.getNFlights();
-      if (n>0)
-        txt+="<tr><td>N "+((isBeforeFocus) ? "going indirectly to" : "coming indirectly from")+
-                 "</td><td>" + sInFocus.sectorId+":</td>"+n+"</td></tr>";
-      txt+="<tr><td>N of visits total:</td><td>"+sFull.getNFlights()+"</td></tr>"+
-               "<tr><td>Time range:</td>"+sFull.tFirst+"..</td><td>"+sFull.tLast+"</td></tr>";
+    if (s.getNFlights()<1) {
+      txt+="<font color=\"#BB0000\"><u>No modified flights!</u></font>";
     }
-    txt+="</table><table border=0 cellmargin=3 cellpadding=1 cellspacing=2>";
+    else {
+      txt += "<table border=0 cellmargin=3 cellpadding=1 cellspacing=2>";
+      txt += "<tr><td><font color=\"#BB0000\"><u>Modified flights</u></font></td></tr>";
+      if (isFocus)
+        txt += "<tr><td>N of flights:</td><td>" + s.getNFlights() + "</td></tr>" +
+                   "<tr><td>Time range:</td>" + s.tFirst + " ..</td><td>" + s.tLast + "</td></tr>";
+      else {
+        txt += "<tr><td>N " + ((isBeforeFocus) ? "going directly to" : "coming directly from") +
+                   "</td><td>" + sInFocus.sectorId + ":</td>" + s.getNFlights() + "</td></tr>" +
+                   "<tr><td>Time range:</td>" + s.tFirst + " ..</td><td>" + s.tLast + "</td></tr>";
+        ArrayList sList = (isBeforeFocus) ? fromSorted : toSorted;
+        int idx = sList.indexOf(s);
+        int n = (idx < 0) ? 0 : (isBeforeFocus) ? nComeFrom[idx] : nGoTo[idx];
+        n -= s.getNFlights();
+        if (n > 0)
+          txt += "<tr><td>N " + ((isBeforeFocus) ? "going indirectly to" : "coming indirectly from") +
+                     "</td><td>" + sInFocus.sectorId + ":</td>" + n + "</td></tr>";
+        txt += "<tr><td>N of visits total:</td><td>" + sFull.getNFlights() + "</td></tr>" +
+                   "<tr><td>Time range:</td>" + sFull.tFirst + " ..</td><td>" + sFull.tLast + "</td></tr>";
+      }
+      txt+="</table>";
+    }
+    txt+="<table border=0 cellmargin=3 cellpadding=1 cellspacing=2>";
     txt+="<tr><td>Sector capacity:</td><td>"+sFull.capacity+"</td><td>flights</td><td>per hour</td></tr>";
     
     OneSectorData s1=scDiff.scenario1.getSectorData(s.sectorId),
@@ -112,11 +118,11 @@ public class ComparisonCanvas extends SectorShowCanvas {
       if (idx>=0 && idx<counts1.length) {
         LocalTime tt[]=sFull.getTimeBinRange(idx,tStepAggregates);
         if (tt!=null) {
-          txt += "<tr><td>Time bin:</td><td>#"+idx+"</td><td>"+tt[0]+"..</td><td>"+tt[1]+"</td></tr>";
+          txt += "<tr><td>Time bin:</td><td>#"+idx+"</td><td>"+tt[0]+":00 ..</td><td>"+tt[1]+"</td></tr>";
           txt+="</table><table border=0 cellmargin=3 cellpadding=1 cellspacing=2>";
           txt += "<tr><td>Hourly occupancy:</td><td><font color=\"#0000BB\">" + counts1[idx]+"</font></td>"+
                      "<td> >>> </td><td><font color=\"#BB0000\">"+counts2[idx]+"</font></td></tr>";
-          if (counts1[idx]>sFull.capacity || counts2[idx]>sFull.capacity) {
+          if (sFull.capacity>0 && (counts1[idx]>sFull.capacity || counts2[idx]>sFull.capacity)) {
             txt+="<tr><td>Excess of capacity:</td>";
             int diff=counts1[idx]-sFull.capacity;
             if (diff>0) {
@@ -142,7 +148,7 @@ public class ComparisonCanvas extends SectorShowCanvas {
           if (counts1!=null) {
             txt += "<tr><td>Hourly entries:</td><td><font color=\"#0000BB\">" + counts1[idx] + "</font></td>" +
                        "<td> >>> </td><td><font color=\"#BB0000\">" + counts2[idx] + "</font></td></tr>";
-            if (counts1[idx] > sFull.capacity || counts2[idx] > sFull.capacity) {
+            if (sFull.capacity>0 && (counts1[idx] > sFull.capacity || counts2[idx] > sFull.capacity)) {
               txt += "<tr><td>Excess of capacity:</td>";
               int diff = counts1[idx] - sFull.capacity;
               if (diff > 0) {
