@@ -11,6 +11,10 @@ import java.util.Vector;
 public class Connector {
 
   public Connector (Vector<Record> records[], Hashtable<String,Integer> capacities) {
+    this(records,capacities,null);
+  }
+
+  public Connector (Vector<Record> records[], Hashtable<String,Integer> capacities, String sector) {
     SectorSet sectorsBaseline=new SectorSet();
     sectorsBaseline.addFlightData(records[0]);
     SectorSet sectorsSolution=null;
@@ -42,6 +46,8 @@ public class Connector {
     JFrame frame = new JFrame("TAPAS Sector Explorer");
     frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
     SectorShowPanel sectorShow=new SectorShowPanel(scenarios);
+    if (sector!=null)
+      sectorShow.putSectorInFocus(sector);
     frame.getContentPane().add(sectorShow, BorderLayout.CENTER);
     //Display the window.
     frame.pack();
