@@ -111,8 +111,11 @@ public class Main {
       
       SectorSet scenarios[]=new SectorSet[(sectorsSolution==null)?1:2];
       scenarios[0]=sectorsBaseline;
-      if (sectorsSolution!=null)
-        scenarios[1]=sectorsSolution;
+      if (sectorsSolution!=null) {
+        scenarios[0].name="baseline";
+        scenarios[1] = sectorsSolution;
+        scenarios[1].name="solution";
+      }
       
       JFrame frame = new JFrame("TAPAS Sector Explorer");
       frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
