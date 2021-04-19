@@ -77,27 +77,30 @@ public class ComparisonCanvas extends SectorShowCanvas {
     OneSectorData sFull=(isFocus)?sInFocus:sectors.getSectorData(s.sectorId);
     
     String txt="<html><body style=background-color:rgb(255,255,204)>"+
-                   "<font size=+1>Sector "+s.sectorId+"</font><br>"+
-                   "Time = "+t+"<br>";
-    
+                   "<font size=5><center>Sector "+s.sectorId+"</center></font>"+
+                   "<center>Time = "+t+"</center>";
+  
+    txt += "<table border=0 cellmargin=3 cellpadding=1 cellspacing=2>";
+    txt+="<tr><td><font color=\"#BB0000\"><u>Modified flights</u></font></td></tr>";
     if (isFocus)
-      txt+=s.getNFlights()+" modified flights "+
-               "during time range "+s.tFirst+".."+s.tLast+"<br>";
+      txt+="<tr><td>N of flights:</td><td>"+s.getNFlights()+"</td></tr>"+
+               "<tr><td>Time range:</td>"+s.tFirst+"..</td><td>"+s.tLast+"</td></tr>";
     else {
-      txt += s.getNFlights() + " modified flights " + ((isBeforeFocus) ? "go directly to" : "come directly from") +
-                 " sector " + sInFocus.sectorId + "<br>during " +
-                 "time range " + s.tFirst + ".." + s.tLast + "<br>";
+      txt+="<tr><td>N "+((isBeforeFocus) ? "going directly to" : "coming directly from")+
+               "</td><td>" + sInFocus.sectorId+":</td>"+s.getNFlights()+"</td></tr>"+
+               "<tr><td>Time range:</td>"+s.tFirst+"..</td><td>"+s.tLast+"</td></tr>";
       ArrayList sList=(isBeforeFocus)?fromSorted:toSorted;
       int idx=sList.indexOf(s);
       int n=(idx<0)?0:(isBeforeFocus)?nComeFrom[idx]:nGoTo[idx];
       n-=s.getNFlights();
       if (n>0)
-        txt+=n+" flights " + ((isBeforeFocus) ? "go indirectly to" : "come indirectly from")+
-                 " sector "+sInFocus.sectorId+"<br>";
-      txt+=sFull.getNFlights() + " modified flights in total visited this sector<br>" +
-               "during time range " + sFull.tFirst + ".." + sFull.tLast + "<br>";
+        txt+="<tr><td>N "+((isBeforeFocus) ? "going indirectly to" : "coming indirectly from")+
+                 "</td><td>" + sInFocus.sectorId+":</td>"+n+"</td></tr>";
+      txt+="<tr><td>N of visits total:</td><td>"+sFull.getNFlights()+"</td></tr>"+
+               "<tr><td>Time range:</td>"+sFull.tFirst+"..</td><td>"+sFull.tLast+"</td></tr>";
     }
-    txt+="capacity = "+sFull.capacity+" flights per hour";
+    txt+="</table><table border=0 cellmargin=3 cellpadding=1 cellspacing=2>";
+    txt+="<tr><td>Sector capacity:</td><td>"+sFull.capacity+"</td><td>flights</td><td>per hour</td></tr>";
     
     OneSectorData s1=scDiff.scenario1.getSectorData(s.sectorId),
         s2=scDiff.scenario2.getSectorData(s.sectorId);
@@ -109,40 +112,62 @@ public class ComparisonCanvas extends SectorShowCanvas {
       if (idx>=0 && idx<counts1.length) {
         LocalTime tt[]=sFull.getTimeBinRange(idx,tStepAggregates);
         if (tt!=null) {
-          txt += "<br>time bin: "+tt[0]+".."+tt[1]+" (#"+idx+")"+
-                     "<br>Hourly occupancy:<br>1) " + counts1[idx];
-          if (counts1[idx]>sFull.capacity) {
+          txt += "<tr><td>Time bin:</td><td>#"+idx+"</td><td>"+tt[0]+"..</td><td>"+tt[1]+"</td></tr>";
+          txt+="</table><table border=0 cellmargin=3 cellpadding=1 cellspacing=2>";
+          txt += "<tr><td>Hourly occupancy:</td><td><font color=\"#0000BB\">" + counts1[idx]+"</font></td>"+
+                     "<td> >>> </td><td><font color=\"#BB0000\">"+counts2[idx]+"</font></td></tr>";
+          if (counts1[idx]>sFull.capacity || counts2[idx]>sFull.capacity) {
+            txt+="<tr><td>Excess of capacity:</td>";
             int diff=counts1[idx]-sFull.capacity;
-            float percent=100f*diff/sFull.capacity;
-            txt+="; excess of capacity: "+diff+" flights ("+String.format("%.2f", percent)+"%)";
+            if (diff>0) {
+              float percent = 100f * diff / sFull.capacity;
+              txt +="<td><font color=\"#0000BB\">"+ diff + "</td><td>(" +
+                        String.format("%.2f", percent) + "%)</font></td>";
+            }
+            else
+              txt+="<td></td><td></td>";
+            diff=counts2[idx]-sFull.capacity;
+            if (diff>0) {
+              float percent = 100f * diff / sFull.capacity;
+              txt +="<td><font color=\"#BB0000\">"+ diff + "</td><td>(" +
+                        String.format("%.2f", percent) + "%)</font></td>";
+            }
+            else
+              txt+="<td></td><td></td>";
+            txt+="</tr>";
           }
-          txt+="<br>2) "+counts2[idx];
-          if (counts2[idx]>sFull.capacity) {
-            int diff=counts2[idx]-sFull.capacity;
-            float percent=100f*diff/sFull.capacity;
-            txt+="; excess of capacity: "+diff+" flights ("+String.format("%.2f", percent)+"%)";
-          }
-          txt+="<br>difference = "+(counts2[idx]-counts1[idx]);
+          txt+="<tr><td>Difference:</td><td>"+(counts2[idx]-counts1[idx])+"</td></tr>";
           counts1=s1.getHourlyEntryCounts(tStepAggregates,toIgnoreReEntries);
           counts2=s2.getHourlyEntryCounts(tStepAggregates,toIgnoreReEntries);
           if (counts1!=null) {
-            txt+="<br>Hourly entries:<br>1) " + counts1[idx];
-            if (counts1[idx]>sFull.capacity) {
-              int diff=counts1[idx]-sFull.capacity;
-              float percent=100f*diff/sFull.capacity;
-              txt+="; excess of capacity: "+diff+" entries ("+String.format("%.2f", percent)+"%)";
+            txt += "<tr><td>Hourly entries:</td><td><font color=\"#0000BB\">" + counts1[idx] + "</font></td>" +
+                       "<td> >>> </td><td><font color=\"#BB0000\">" + counts2[idx] + "</font></td></tr>";
+            if (counts1[idx] > sFull.capacity || counts2[idx] > sFull.capacity) {
+              txt += "<tr><td>Excess of capacity:</td>";
+              int diff = counts1[idx] - sFull.capacity;
+              if (diff > 0) {
+                float percent = 100f * diff / sFull.capacity;
+                txt += "<td><font color=\"#0000BB\">" + diff + "</td><td>(" +
+                           String.format("%.2f", percent) + "%)</font></td>";
+              }
+              else
+                txt += "<td></td><td></td>";
+              diff = counts2[idx] - sFull.capacity;
+              if (diff > 0) {
+                float percent = 100f * diff / sFull.capacity;
+                txt += "<td><font color=\"#BB0000\">" + diff + "</td><td>(" +
+                           String.format("%.2f", percent) + "%)</font></td>";
+              }
+              else
+                txt += "<td></td><td></td>";
+              txt += "</tr>";
             }
+            txt += "<tr><td>Difference:</td><td>" + (counts2[idx] - counts1[idx]) + "</td></tr>";
           }
-          txt+="<br>2) "+counts2[idx];
-          if (counts2[idx]>sFull.capacity) {
-            int diff=counts2[idx]-sFull.capacity;
-            float percent=100f*diff/sFull.capacity;
-            txt+="; excess of capacity: "+diff+" entries ("+String.format("%.2f", percent)+"%)";
-          }
-          txt+="<br>difference = "+(counts2[idx]-counts1[idx]);
         }
       }
     }
+    txt+="</table>";
     
     txt+="</body></html>";
     return txt;

@@ -1119,37 +1119,31 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
   public String getSectorInfoText(OneSectorData s, boolean isBeforeFocus, LocalTime t){
     boolean isFocus=s.equals(sInFocus);
     OneSectorData sFull=(isFocus)?sInFocus:sectors.getSectorData(s.sectorId);
-  
+    
     String txt="<html><body style=background-color:rgb(255,255,204)>"+
-                   "<font size=+1>Sector "+s.sectorId+"</font><br>"+
-                   "Time = "+t+"<br>";
+                   "<font size=5><center>Sector "+s.sectorId+"</center></font>"+
+                   "<center>Time = "+t+"</center>";
   
-    txt += "<table border=0>";
+    txt += "<table border=0 cellmargin=3 cellpadding=1 cellspacing=2>";
     if (isFocus)
-      txt+="<tr><td>N of visits:</td><td>"+s.getNFlights()+"</td><td>"+
-               "time range:</td>"+s.tFirst+".."+s.tLast+"</td></tr>";
+      txt+="<tr><td>N of visits:</td><td>"+s.getNFlights()+"</td></tr>"+
+               "<tr><td>Time range:</td>"+s.tFirst+"..</td><td>"+s.tLast+"</td></tr>";
     else {
-      txt+="<tr><td>N of "+((isBeforeFocus) ? "going directly to" : "coming directly from")+
-               " sector " + sInFocus.sectorId+":</td>"+s.getNFlights()+"</td><td>"+
-               "time range:</td>"+s.tFirst+".."+s.tLast+"</td></tr>";
-      //txt += s.getNFlights() + " flights " + ((isBeforeFocus) ? "go directly to" : "come directly from");
-      //txt+=" sector " + sInFocus.sectorId + "<br>during " +
-      //     "time range " + s.tFirst + ".." + s.tLast + "<br>";
+      txt+="<tr><td>N "+((isBeforeFocus) ? "going directly to" : "coming directly from")+
+               "</td><td>" + sInFocus.sectorId+":</td>"+s.getNFlights()+"</td></tr>"+
+               "<tr><td>Time range:</td>"+s.tFirst+"..</td><td>"+s.tLast+"</td></tr>";
       ArrayList sList=(isBeforeFocus)?fromSorted:toSorted;
       int idx=sList.indexOf(s);
       int n=(idx<0)?0:(isBeforeFocus)?nComeFrom[idx]:nGoTo[idx];
       n-=s.getNFlights();
       if (n>0)
-        //txt+=n+" flights " + ((isBeforeFocus) ? "go indirectly to" : "come indirectly from")+
-        //    " sector "+sInFocus.sectorId+"<br>";
-        txt+="<tr><td>N of "+((isBeforeFocus) ? "going indirectly to" : "coming indirectly from")+
-                 " sector " + sInFocus.sectorId+":</td>"+n+"</td></tr>";
-      //txt+=sFull.getNFlights() + " flights in total visited this sector<br>" +
-           //"during time range " + sFull.tFirst + ".." + sFull.tLast + "<br>";
-      txt+="<tr><td>N of visits total:</td><td>"+sFull.getNFlights()+"</td><td>"+
-               "time range:</td>"+sFull.tFirst+".."+sFull.tLast+"</td></tr>";
+        txt+="<tr><td>N "+((isBeforeFocus) ? "going indirectly to" : "coming indirectly from")+
+                 "</td><td>" + sInFocus.sectorId+":</td>"+n+"</td></tr>";
+      txt+="<tr><td>N of visits total:</td><td>"+sFull.getNFlights()+"</td></tr>"+
+               "<tr><td>Time range:</td>"+sFull.tFirst+"..</td><td>"+sFull.tLast+"</td></tr>";
     }
-    txt+="<tr><td>Sector capacity:</td><td>"+sFull.capacity+"</td><td>flights per hour</td></tr>";
+    txt+="</table><table border=0 cellmargin=3 cellpadding=1 cellspacing=2>";
+    txt+="<tr><td>Sector capacity:</td><td>"+sFull.capacity+"</td><td>flights</td><td>per hour</td></tr>";
   
     int tStep=sFull.getAggregationTimeStep();
     int counts[]=sFull.getHourlyFlightCounts(tStep);
@@ -1158,21 +1152,22 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       if (idx>=0 && idx<counts.length) {
         LocalTime tt[]=sFull.getTimeBinRange(idx,tStep);
         if (tt!=null) {
-          txt += "<tr><td>Time bin:</td><td>"+tt[0]+".."+tt[1]+"</td><td>(#"+idx+")</td></tr>";
+          txt += "<tr><td>Time bin:</td><td>#"+idx+"</td><td>"+tt[0]+"..</td><td>"+tt[1]+"</td></tr>";
           txt += "<tr><td>Hourly occupancy:</td><td>" + counts[idx]+"</td></tr>";
           if (counts[idx]>sFull.capacity) {
             int diff=counts[idx]-sFull.capacity;
             float percent=100f*diff/sFull.capacity;
-            txt+="<tr><td>excess of capacity:</td><td>"+diff+"</td><td>flights</td><td>("+
+            txt+="<tr><td>Excess of capacity:</td><td>"+diff+"</td><td>flights</td><td>("+
                      String.format("%.2f", percent)+"%)</td></tr>";
           }
           counts=sFull.getHourlyEntryCounts(tStep,toIgnoreReEntries);
           if (counts!=null) {
-            txt+="<br>Hourly entries: " + counts[idx];
+            txt+="<tr><td>Hourly entries:</td><td>" + counts[idx]+"</td></tr>";
             if (counts[idx]>sFull.capacity) {
               int diff=counts[idx]-sFull.capacity;
               float percent=100f*diff/sFull.capacity;
-              txt+="; excess of capacity: "+diff+" entries ("+String.format("%.2f", percent)+"%)";
+              txt+="<tr><td>Excess of capacity:</td><td>"+diff+"</td><td>entries</td><td>("+
+                       String.format("%.2f", percent)+"%)</td></tr>";
             }
           }
         }
