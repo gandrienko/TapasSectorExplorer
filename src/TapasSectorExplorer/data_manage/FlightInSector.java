@@ -28,6 +28,10 @@ public class FlightInSector implements Comparable<FlightInSector>{
    * Identifiers of the previous and next sectors
    */
   public String prevSectorId=null, nextSectorId=null;
+  /**
+   * Whether this is a modified version of the flight
+   */
+  public boolean isModifiedVersion=false;
   
   public boolean equals (Object obj) {
     if (obj==null)
@@ -42,6 +46,18 @@ public class FlightInSector implements Comparable<FlightInSector>{
     if (!this.entryTime.equals(f.entryTime)) return false;
     if (!this.exitTime.equals(f.exitTime)) return false;
     return true;
+  }
+  
+  public FlightInSector makeCopy() {
+    FlightInSector f=new FlightInSector();
+    f.flightId=flightId;
+    f.sectorId=sectorId;
+    f.entryTime=entryTime;
+    f.exitTime=exitTime;
+    f.delay=delay;
+    f.prevSectorId=prevSectorId;
+    f.nextSectorId=nextSectorId;
+    return f;
   }
   
   /**

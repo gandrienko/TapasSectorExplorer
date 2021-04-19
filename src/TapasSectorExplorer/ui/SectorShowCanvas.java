@@ -237,7 +237,6 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       fromSorted=fromSectors.getSectorsSortedByNFlights();
       toSorted=toSectors.getSectorsSortedByNFlights();
     }
-    countFlightsToAndFrom();
   }
   
   public void countFlightsToAndFrom() {
@@ -274,10 +273,11 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       sInFocus = null;
       fromSectors=toSectors=null;
       fromSorted=toSorted=null;
+      return;
     }
-    else
-      sInFocus=sectors.getSectorData(sectorId);
+    sInFocus=sectors.getSectorData(sectorId);
     getPreviousAndNextSectors();
+    countFlightsToAndFrom();
     off_Valid=false;
     selection_Valid=false;
   
@@ -285,7 +285,9 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       flightDrawers = new FlightDrawer[sInFocus.getNFlights()];
       for (int i = 0; i < flightDrawers.length; i++) {
         flightDrawers[i] = new FlightDrawer();
-        flightDrawers[i].flightId = sInFocus.sortedFlights.get(i).flightId;
+        FlightInSector f=sInFocus.sortedFlights.get(i);
+        flightDrawers[i].flightId = f.flightId;
+        flightDrawers[i].isModifiedVersion=f.isModifiedVersion;
       }
     }
     if (toRedraw)
@@ -301,6 +303,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       return;
     focusFlightId=flightId;
     getPreviousAndNextSectors();
+    countFlightsToAndFrom();
     off_Valid=false;
     selection_Valid=false;
     redraw();
@@ -450,8 +453,10 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     if (flightDrawers==null || flightDrawers.length!=sInFocus.sortedFlights.size()) {
       flightDrawers=new FlightDrawer[sInFocus.sortedFlights.size()];
       for (int i=0; i<flightDrawers.length; i++) {
-        flightDrawers[i]=new FlightDrawer();
-        flightDrawers[i].flightId=sInFocus.sortedFlights.get(i).flightId;
+        flightDrawers[i] = new FlightDrawer();
+        FlightInSector f=sInFocus.sortedFlights.get(i);
+        flightDrawers[i].flightId = f.flightId;
+        flightDrawers[i].isModifiedVersion=f.isModifiedVersion;
       }
     }
     int y=y0;
@@ -465,6 +470,8 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       for (int j=0; j<seq.size() && fIdx<0; j++)
         if (f.equals(seq.get(j)))
           fIdx=j;
+      if (fIdx<0)
+        continue;
       int idx1=fIdx, idx2=fIdx;
       for (int j=fIdx-1; j>=0 && fromSectors.hasSector(seq.get(j).sectorId); j--) {
         if (j+1<fIdx) {

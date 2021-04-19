@@ -15,14 +15,14 @@ public class ScenarioDistinguisher extends SectorSet {
    */
   public SectorSet scenario1=null, scenario2=null;
   /**
-   * Sector descriptors keepind data about modified versions of the flights
+   * Sector descriptors keeping data about original and modified versions of the flights
    */
-  public TreeMap<String,OneSectorData> altSectors=null;
+  public TreeMap<String,OneSectorData> origSectors=null, altSectors=null;
   /**
-   * Modified versions of the flights.
+   * Original and modified versions of the flights.
    * For each flight: the sequence of visited sectors, in chronological order
    */
-  public TreeMap<String,ArrayList<FlightInSector>> altFlights=null;
+  public TreeMap<String,ArrayList<FlightInSector>> origFlights=null, altFlights=null;
   
   /**
    * Computes differences between the two scenarios. Stores the scenarios and the
@@ -39,31 +39,47 @@ public class ScenarioDistinguisher extends SectorSet {
     //create empty sector records for all sectors occurring in any of the scenarios
     for (Map.Entry<String,OneSectorData> entry:sc1.sectors.entrySet()) {
       String sectorId = entry.getKey();
-      OneSectorData sDiff=new OneSectorData();
-      sDiff.sectorId=sectorId;
-      sDiff.capacity=entry.getValue().capacity;
-      addSector(sDiff);
-      sDiff=new OneSectorData();
-      sDiff.sectorId=sectorId;
-      sDiff.capacity=entry.getValue().capacity;
-      addAltSector(sDiff);
+      for (int i=0; i<3; i++) {
+        OneSectorData sDiff = new OneSectorData();
+        sDiff.sectorId = sectorId;
+        sDiff.capacity = entry.getValue().capacity;
+        switch (i) {
+          case 0:
+            addSector(sDiff);
+            break;
+          case 1:
+            addOrigSector(sDiff);
+            break;
+          case 2:
+            addAltSector(sDiff);
+            break;
+        }
+      }
     }
     for (Map.Entry<String,OneSectorData> entry:sc2.sectors.entrySet()) {
       String sectorId = entry.getKey();
-      if (!sectors.containsKey(sectorId)) {
-        OneSectorData sDiff = new OneSectorData();
-        sDiff.sectorId = sectorId;
-        sDiff.capacity=entry.getValue().capacity;
-        addSector(sDiff);
-        sDiff=new OneSectorData();
-        sDiff.sectorId=sectorId;
-        sDiff.capacity=entry.getValue().capacity;
-        addAltSector(sDiff);
-      }
+      if (!sectors.containsKey(sectorId))
+        for (int i=0; i<3; i++) {
+          OneSectorData sDiff = new OneSectorData();
+          sDiff.sectorId = sectorId;
+          sDiff.capacity = entry.getValue().capacity;
+          switch (i) {
+            case 0:
+              addSector(sDiff);
+              break;
+            case 1:
+              addOrigSector(sDiff);
+              break;
+            case 2:
+              addAltSector(sDiff);
+              break;
+          }
+        }
     }
     
     //for each flight, get the full path and add data to the sector descriptors in both sets of sectors
     flights=new TreeMap<String, ArrayList<FlightInSector>>();
+    origFlights=new TreeMap<String, ArrayList<FlightInSector>>();
     altFlights=new TreeMap<String, ArrayList<FlightInSector>>();
     
     for (Map.Entry<String,ArrayList<FlightInSector>> entry:sc1.flights.entrySet()) {
@@ -74,13 +90,23 @@ public class ScenarioDistinguisher extends SectorSet {
       for (int i=0; i<seq.size(); i++) {
         OneSectorData sector=sectors.get(seq.get(i).sectorId);
         sector.addFlight(seq.get(i));
+        sector=origSectors.get(sector.sectorId);
+        sector.addFlight(seq.get(i));
       }
       flights.put(fId,seq);
+      origFlights.put(fId,seq);
       if (altSeq!=null) {
+        ArrayList<FlightInSector> altSeqCopy=new ArrayList<FlightInSector>(altSeq.size());
         for (int i = 0; i < altSeq.size(); i++) {
           OneSectorData sector = altSectors.get(altSeq.get(i).sectorId);
-          sector.addFlight(altSeq.get(i));
+          FlightInSector f=altSeq.get(i), fCopy=f.makeCopy();
+          fCopy.isModifiedVersion=true;
+          altSeqCopy.add(fCopy);
+          sector.addFlight(fCopy);
+          sector=altSectors.get(sector.sectorId);
+          sector.addFlight(f);
         }
+        flights.put(fId+"_mod",altSeqCopy);
         altFlights.put(fId,altSeq);
       }
     }
@@ -91,16 +117,31 @@ public class ScenarioDistinguisher extends SectorSet {
         if (!altFlights.containsKey(fId)) {
           ArrayList<FlightInSector> altSeq=sc2.getSectorVisitSequence(fId);
           if (altSeq!=null) {
+            ArrayList<FlightInSector> altSeqCopy=new ArrayList<FlightInSector>(altSeq.size());
             for (int i = 0; i < altSeq.size(); i++) {
               OneSectorData sector = altSectors.get(altSeq.get(i).sectorId);
-              sector.addFlight(altSeq.get(i));
+              FlightInSector f=altSeq.get(i), fCopy=f.makeCopy();
+              fCopy.isModifiedVersion=true;
+              altSeqCopy.add(fCopy);
+              sector.addFlight(fCopy);
+              sector=altSectors.get(sector.sectorId);
+              sector.addFlight(f);
             }
+            flights.put(fId+"_mod",altSeqCopy);
             altFlights.put(fId,altSeq);
           }
         }
       }
     
     return sectors!=null && !sectors.isEmpty() && flights!=null && !flights.isEmpty();
+  }
+  
+  public void addOrigSector(OneSectorData sector) {
+    if (sector==null)
+      return;
+    if (origSectors==null)
+      origSectors=new TreeMap<String,OneSectorData>();
+    origSectors.put(sector.sectorId,sector);
   }
   
   public void addAltSector(OneSectorData sector) {
