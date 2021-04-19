@@ -10,17 +10,21 @@ import java.util.Vector;
 
 public class Connector {
 
-  public Connector (Vector<Record> records[], Hashtable<String,Integer> capacities) {
-    this(records,capacities,null);
+  public Connector (Vector<Record> records[], String stepNames[], Hashtable<String,Integer> capacities) {
+    this(records,stepNames,capacities,null);
   }
 
-  public Connector (Vector<Record> records[], Hashtable<String,Integer> capacities, String sector) {
+  public Connector (Vector<Record> records[], String stepNames[], Hashtable<String,Integer> capacities, String sector) {
     SectorSet sectorsBaseline=new SectorSet();
     sectorsBaseline.addFlightData(records[0]);
+    if (stepNames!=null)
+      sectorsBaseline.name=stepNames[0];
     SectorSet sectorsSolution=null;
     if (records.length>1) {
       sectorsSolution=new SectorSet();
       sectorsSolution.addFlightData(records[1]);
+      if (stepNames!=null)
+        sectorsSolution.name=stepNames[1];
     }
     
     for (String key:capacities.keySet()) {
