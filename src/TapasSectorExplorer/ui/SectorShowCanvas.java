@@ -237,10 +237,12 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       fromSorted=fromSectors.getSectorsSortedByNFlights();
       toSorted=toSectors.getSectorsSortedByNFlights();
     }
-    if (fromSorted!=null)
-      nComeFrom=new int[fromSorted.size()];
-    if (toSorted!=null)
-      nGoTo=new int[toSorted.size()];
+    countFlightsToAndFrom();
+  }
+  
+  public void countFlightsToAndFrom() {
+    nComeFrom=(fromSorted==null)?null:new int[fromSorted.size()];
+    nGoTo=(toSorted==null)?null:new int[toSorted.size()];
     if (nComeFrom!=null || nGoTo!=null)
       for (int i=0; i<sInFocus.sortedFlights.size(); i++) {
         FlightInSector f = sInFocus.sortedFlights.get(i);
@@ -262,6 +264,10 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
   }
   
   public void setFocusSector(String sectorId) {
+    setFocusSector(sectorId,true);
+  }
+
+  public void setFocusSector(String sectorId, boolean toRedraw) {
     flightDrawers=null;
     if (sectors==null) return;
     if (sectorId==null) {
@@ -275,16 +281,15 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     off_Valid=false;
     selection_Valid=false;
   
-    if (sInFocus.sortedFlights!=null && !sInFocus.sortedFlights.isEmpty()) {
-      flightDrawers = new FlightDrawer[sInFocus.sortedFlights.size()];
+    if (sInFocus.getNFlights()>0) {
+      flightDrawers = new FlightDrawer[sInFocus.getNFlights()];
       for (int i = 0; i < flightDrawers.length; i++) {
         flightDrawers[i] = new FlightDrawer();
         flightDrawers[i].flightId = sInFocus.sortedFlights.get(i).flightId;
       }
     }
-    else
-      flightDrawers=null;
-    redraw();
+    if (toRedraw)
+      redraw();
   }
   
   public String getFocusSectorId(){
@@ -437,6 +442,77 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     return -1;
   }
   
+  protected void makeFlightDrawers(int nFrom, int y0) {
+    if (sInFocus==null || sInFocus.sortedFlights==null || sInFocus.sortedFlights.isEmpty()) {
+      flightDrawers=null;
+      return;
+    }
+    if (flightDrawers==null || flightDrawers.length!=sInFocus.sortedFlights.size()) {
+      flightDrawers=new FlightDrawer[sInFocus.sortedFlights.size()];
+      for (int i=0; i<flightDrawers.length; i++) {
+        flightDrawers[i]=new FlightDrawer();
+        flightDrawers[i].flightId=sInFocus.sortedFlights.get(i).flightId;
+      }
+    }
+    int y=y0;
+    for (int i=0; i<sInFocus.sortedFlights.size(); i++) {
+      flightDrawers[i].clearPath();
+      FlightInSector f=sInFocus.sortedFlights.get(i);
+      if (showOnlySelectedFlights && (selectedObjIds==null || !selectedObjIds.contains(f.flightId)))
+        continue;
+      ArrayList<FlightInSector> seq=sectors.getSectorVisitSequence(f.flightId);
+      int fIdx=-1;
+      for (int j=0; j<seq.size() && fIdx<0; j++)
+        if (f.equals(seq.get(j)))
+          fIdx=j;
+      int idx1=fIdx, idx2=fIdx;
+      for (int j=fIdx-1; j>=0 && fromSectors.hasSector(seq.get(j).sectorId); j--) {
+        if (j+1<fIdx) {
+          int k1=getSectorIndexInSortedList(seq.get(j).sectorId,fromSorted),
+              k2=getSectorIndexInSortedList(seq.get(j+1).sectorId,fromSorted);
+          if (k1<=k2)
+            break;
+        }
+        idx1 = j;
+      }
+      for (int j=fIdx+1; j<seq.size() && toSectors.hasSector(seq.get(j).sectorId); j++) {
+        if (j-1>fIdx) {
+          int k1=getSectorIndexInSortedList(seq.get(j-1).sectorId,toSorted),
+              k2=getSectorIndexInSortedList(seq.get(j).sectorId,toSorted);
+          if (k2<=k1)
+            break;
+        }
+        idx2 = j;
+      }
+      for (int j=idx1; j<=idx2; j++) {
+        FlightInSector ff=seq.get(j);
+        if (j==fIdx)  // path segment in the focus sector
+          flightDrawers[i].addPathSegment(getXPos(ff.entryTime,tWidth)+tMarg,
+              getXPos(ff.exitTime,tWidth)+tMarg,y,y+hFocus,true);
+        else
+          if (j<fIdx)  { // path segment in one of the previous sectors
+            OneSectorData s=fromSectors.getSectorData(ff.sectorId);
+            int sIdx=getSectorIndexInSortedList(s.sectorId,fromSorted);
+            if (sIdx>=0) {
+              int yy=yMarg+(nFrom-sIdx-1)*(hOther+vSpace);
+              flightDrawers[i].addPathSegment(getXPos(ff.entryTime,tWidth)+tMarg,
+                  getXPos(ff.exitTime,tWidth)+tMarg,yy,yy+hOther,false);
+            }
+          }
+          else { // path segment in one of the following sectors
+            OneSectorData s=toSectors.getSectorData(ff.sectorId);
+            int sIdx=getSectorIndexInSortedList(s.sectorId,toSorted);
+            if (sIdx>=0) {
+              int yy=yMarg+hFrom+hFocus+vSpace+sIdx*(hOther+vSpace);
+              int xx1=getXPos(ff.entryTime,tWidth)+tMarg, xx2=getXPos(ff.exitTime,tWidth)+tMarg;
+              flightDrawers[i].addPathSegment(getXPos(ff.entryTime,tWidth)+tMarg,
+                  getXPos(ff.exitTime,tWidth)+tMarg,yy,yy+hOther,false);
+            }
+          }
+      }
+    }
+  }
+  
   public void paintComponent(Graphics gr) {
     int w=getWidth(), h=getHeight();
     if (w<10 || h<10)
@@ -541,74 +617,9 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       g.setColor(toSectorBkgColor);
       g.fillRect(0,y,w,hOther);
     }
-    
-    if (sInFocus.sortedFlights!=null &&
-            (flightDrawers==null || flightDrawers.length!=sInFocus.sortedFlights.size())) {
-      flightDrawers=new FlightDrawer[sInFocus.sortedFlights.size()];
-      for (int i=0; i<flightDrawers.length; i++) {
-        flightDrawers[i]=new FlightDrawer();
-        flightDrawers[i].flightId=sInFocus.sortedFlights.get(i).flightId;
-      }
-    }
   
     y=yMarg+hFrom;
-    if (sInFocus.sortedFlights!=null)
-      for (int i=0; i<sInFocus.sortedFlights.size(); i++) {
-        flightDrawers[i].clearPath();
-        FlightInSector f=sInFocus.sortedFlights.get(i);
-        if (showOnlySelectedFlights && (selectedObjIds==null || !selectedObjIds.contains(f.flightId)))
-          continue;
-        ArrayList<FlightInSector> seq=sectors.getSectorVisitSequence(f.flightId);
-        int fIdx=-1;
-        for (int j=0; j<seq.size() && fIdx<0; j++)
-          if (f.equals(seq.get(j)))
-            fIdx=j;
-        int idx1=fIdx, idx2=fIdx;
-        for (int j=fIdx-1; j>=0 && fromSectors.hasSector(seq.get(j).sectorId); j--) {
-          if (j+1<fIdx) {
-            int k1=getSectorIndexInSortedList(seq.get(j).sectorId,fromSorted),
-                k2=getSectorIndexInSortedList(seq.get(j+1).sectorId,fromSorted);
-            if (k1<=k2)
-              break;
-          }
-          idx1 = j;
-        }
-        for (int j=fIdx+1; j<seq.size() && toSectors.hasSector(seq.get(j).sectorId); j++) {
-          if (j-1>fIdx) {
-            int k1=getSectorIndexInSortedList(seq.get(j-1).sectorId,toSorted),
-                k2=getSectorIndexInSortedList(seq.get(j).sectorId,toSorted);
-            if (k2<=k1)
-              break;
-          }
-          idx2 = j;
-        }
-        for (int j=idx1; j<=idx2; j++) {
-          FlightInSector ff=seq.get(j);
-          if (j==fIdx)  // path segment in the focus sector
-            flightDrawers[i].addPathSegment(getXPos(ff.entryTime,tWidth)+tMarg,
-                getXPos(ff.exitTime,tWidth)+tMarg,y,y+hFocus,true);
-          else
-          if (j<fIdx)  { // path segment in one of the previous sectors
-            OneSectorData s=fromSectors.getSectorData(ff.sectorId);
-            int sIdx=getSectorIndexInSortedList(s.sectorId,fromSorted);
-            if (sIdx>=0) {
-              int yy=yMarg+(nFrom-sIdx-1)*(hOther+vSpace);
-              flightDrawers[i].addPathSegment(getXPos(ff.entryTime,tWidth)+tMarg,
-                  getXPos(ff.exitTime,tWidth)+tMarg,yy,yy+hOther,false);
-            }
-          }
-          else { // path segment in one of the following sectors
-            OneSectorData s=toSectors.getSectorData(ff.sectorId);
-            int sIdx=getSectorIndexInSortedList(s.sectorId,toSorted);
-            if (sIdx>=0) {
-              int yy=yMarg+hFrom+hFocus+vSpace+sIdx*(hOther+vSpace);
-              int xx1=getXPos(ff.entryTime,tWidth)+tMarg, xx2=getXPos(ff.exitTime,tWidth)+tMarg;
-              flightDrawers[i].addPathSegment(getXPos(ff.entryTime,tWidth)+tMarg,
-                  getXPos(ff.exitTime,tWidth)+tMarg,yy,yy+hOther,false);
-            }
-          }
-        }
-      }
+    makeFlightDrawers(nFrom,y);
 
     if (flightDrawers!=null)
       for (int i=0; i<flightDrawers.length; i++)

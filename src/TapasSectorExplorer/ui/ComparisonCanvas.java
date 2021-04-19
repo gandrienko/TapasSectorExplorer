@@ -11,10 +11,35 @@ import java.util.ArrayList;
 
 public class ComparisonCanvas extends SectorShowCanvas {
   public ScenarioDistinguisher scDiff=null;
+  /**
+   * Modified data for the sector that is now in focus
+   */
+  public OneSectorData sInFocusMod=null;
+  /**
+   * EDrawers of the modified versions of the flights
+   */
+  protected FlightDrawer modFlightDrawers[]=null;
+  
   
   public ComparisonCanvas(ScenarioDistinguisher scDiff) {
     super(scDiff);
     this.scDiff=scDiff;
+  }
+  
+  public void setFocusSector(String sectorId) {
+    if (sectorId!=null)
+      sInFocusMod=scDiff.getAltSectorData(sectorId);
+    super.setFocusSector(sectorId,false);
+  
+    if (sInFocusMod!=null && sInFocusMod.getNFlights()>0) {
+      modFlightDrawers = new FlightDrawer[sInFocusMod.getNFlights()];
+      for (int i = 0; i < modFlightDrawers.length; i++) {
+        modFlightDrawers[i] = new FlightDrawer();
+        modFlightDrawers[i].flightId = sInFocusMod.sortedFlights.get(i).flightId;
+        modFlightDrawers[i].isModifiedVersion=true;
+      }
+    }
+    redraw();
   }
   
   

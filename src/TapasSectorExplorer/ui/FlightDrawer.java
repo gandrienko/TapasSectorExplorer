@@ -7,7 +7,12 @@ import java.util.ArrayList;
  * Draws a line or polygon representing a flight
  */
 public class FlightDrawer {
+  public static float dash1[] = {10.0f};
   public static Stroke thickStroke=new BasicStroke(3);
+  public static Stroke dashedStroke = new BasicStroke(1.0f,BasicStroke.CAP_BUTT,
+          BasicStroke.JOIN_MITER,10.0f, dash1, 0.0f);
+  public static Stroke thickDashedStroke = new BasicStroke(3.0f,BasicStroke.CAP_BUTT,
+      BasicStroke.JOIN_MITER,10.0f, dash1, 0.0f);
   public static Color focusSectorLineColour=new Color(128,80,0,50),
     fromSectorLineColor=new Color(0,128,128,70),
     fromConnectLineColor=new Color(0,128,128,60),
@@ -20,6 +25,10 @@ public class FlightDrawer {
   
   public String flightId=null;
   /**
+   * Whether this is a modified version of the flight
+   */
+  public boolean isModifiedVersion=false;
+  /**
    * Sequence of points representing the path on the screen
    */
   public ArrayList<Point> screenPath=null;
@@ -29,10 +38,6 @@ public class FlightDrawer {
   public int focusSegmIdx=-1;
   
   public Polygon poly=null;
-  /**
-   * An altered
-   */
-  public FlightDrawer fAltered=null;
   
   public void clearPath() {
     if (screenPath!=null)
@@ -61,11 +66,11 @@ public class FlightDrawer {
     
     for (int k=0; k<screenPath.size(); k+=2) {
       int segmIdx=k/2;
-      g2d.setStroke(thickStroke);
+      g2d.setStroke((isModifiedVersion)?thickDashedStroke:thickStroke);
       g2d.setColor((segmIdx==focusSegmIdx)?focusSectorLineColour:
                        (segmIdx<focusSegmIdx)?fromSectorLineColor:toSectorLineColor);
       g2d.drawLine(screenPath.get(k).x,screenPath.get(k).y,screenPath.get(k+1).x,screenPath.get(k+1).y);
-      g2d.setStroke(origStroke);
+      g2d.setStroke((isModifiedVersion)?dashedStroke:origStroke);
       if (makePoly) {
         poly.addPoint(screenPath.get(k).x - 1, screenPath.get(k).y);
         poly.addPoint(screenPath.get(k+1).x - 1, screenPath.get(k+1).y);
@@ -79,6 +84,7 @@ public class FlightDrawer {
         }
       }
     }
+    g2d.setStroke(origStroke);
     if (makePoly)
       for (int k=screenPath.size()-2; k>=0; k-=2) {
         poly.addPoint(screenPath.get(k+1).x + 1, screenPath.get(k+1).y);
