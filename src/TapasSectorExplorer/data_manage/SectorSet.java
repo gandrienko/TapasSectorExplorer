@@ -10,6 +10,10 @@ import java.util.*;
  */
 public class SectorSet {
   /**
+   * Name of this set of sectors or name of the scenario where these sectors are involved.
+   */
+  public String name=null;
+  /**
    * Data about the sectors, sorted according to the sector identifiers
    */
   public TreeMap<String,OneSectorData> sectors=null;
