@@ -7,27 +7,31 @@ import java.util.ArrayList;
  * Draws a line or polygon representing a flight
  */
 public class FlightDrawer {
-  public static float dash1[] = {10.0f};
+  public static float dash1[] = {5.0f,3.0f};
   public static Stroke thickStroke=new BasicStroke(3);
   public static Stroke dashedStroke = new BasicStroke(1.0f,BasicStroke.CAP_BUTT,
           BasicStroke.JOIN_MITER,10.0f, dash1, 0.0f);
   public static Stroke thickDashedStroke = new BasicStroke(3.0f,BasicStroke.CAP_BUTT,
       BasicStroke.JOIN_MITER,10.0f, dash1, 0.0f);
-  public static Color focusSectorLineColour=new Color(128,80,0,50),
-    fromSectorLineColor=new Color(0,128,128,70),
+  public static Color focusSectorLineColour=new Color(128,80,0,70),
+    fromSectorLineColor=new Color(0,128,128,90),
     fromConnectLineColor=new Color(0,128,128,60),
-    toSectorLineColor=new Color(0,0,128,60),
+    toSectorLineColor=new Color(0,0,128,80),
     toConnectLineColor=new Color(0,0,128,50),
     highlightColor=Color.yellow,
       highlightBorderColor=new Color(255,255,0,192),
     selectColor=new Color(0,0,0,70),
-      selectBorderColor=new Color(0,0,0,40);
+      selectBorderColor=new Color(0,0,0,192);
   
   public String flightId=null;
   /**
    * Whether this is a modified version of the flight
    */
   public boolean isModifiedVersion=false;
+  /**
+   * For a modified version, the identifier of the original flight
+   */
+  public String origFlightId=null;
   /**
    * Sequence of points representing the path on the screen
    */
@@ -114,11 +118,19 @@ public class FlightDrawer {
     RenderingHints rh = new RenderingHints(
         RenderingHints.KEY_ANTIALIASING,
         RenderingHints.VALUE_ANTIALIAS_ON);
-    ((Graphics2D)g).setRenderingHints(rh);
-    g.setColor(highlightColor);
-    g.fillPolygon(poly);
+    Graphics2D g2d=(Graphics2D)g;
+    g2d.setRenderingHints(rh);
+    if (!isModifiedVersion) {
+      g.setColor(highlightColor);
+      g.fillPolygon(poly);
+    }
+    Stroke origStroke=g2d.getStroke();
+    if (isModifiedVersion)
+      g2d.setStroke(dashedStroke);
     g.setColor(highlightBorderColor);
     g.drawPolygon(poly);
+    if (isModifiedVersion)
+      g2d.setStroke(origStroke);
   }
   
   public void drawSelected(Graphics g) {
@@ -127,10 +139,18 @@ public class FlightDrawer {
     RenderingHints rh = new RenderingHints(
         RenderingHints.KEY_ANTIALIASING,
         RenderingHints.VALUE_ANTIALIAS_ON);
-    ((Graphics2D)g).setRenderingHints(rh);
-    g.setColor(selectColor);
-    g.fillPolygon(poly);
+    Graphics2D g2d=(Graphics2D)g;
+    g2d.setRenderingHints(rh);
+    if (!isModifiedVersion) {
+      g.setColor(selectColor);
+      g.fillPolygon(poly);
+    }
+    Stroke origStroke=g2d.getStroke();
+    if (isModifiedVersion)
+      g2d.setStroke(dashedStroke);
     g.setColor(selectBorderColor);
     g.drawPolygon(poly);
+    if (isModifiedVersion)
+      g2d.setStroke(origStroke);
   }
 }

@@ -281,15 +281,6 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     off_Valid=false;
     selection_Valid=false;
   
-    if (sInFocus.getNFlights()>0) {
-      flightDrawers = new FlightDrawer[sInFocus.getNFlights()];
-      for (int i = 0; i < flightDrawers.length; i++) {
-        flightDrawers[i] = new FlightDrawer();
-        FlightInSector f=sInFocus.sortedFlights.get(i);
-        flightDrawers[i].flightId = f.flightId;
-        flightDrawers[i].isModifiedVersion=f.isModifiedVersion;
-      }
-    }
     if (toRedraw)
       redraw();
   }
@@ -457,13 +448,15 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
         FlightInSector f=sInFocus.sortedFlights.get(i);
         flightDrawers[i].flightId = f.flightId;
         flightDrawers[i].isModifiedVersion=f.isModifiedVersion;
+        flightDrawers[i].origFlightId=f.origFlightId;
       }
     }
     int y=y0;
     for (int i=0; i<sInFocus.sortedFlights.size(); i++) {
       flightDrawers[i].clearPath();
       FlightInSector f=sInFocus.sortedFlights.get(i);
-      if (showOnlySelectedFlights && (selectedObjIds==null || !selectedObjIds.contains(f.flightId)))
+      String fId=(f.isModifiedVersion)?f.origFlightId:f.flightId;
+      if (showOnlySelectedFlights && (selectedObjIds==null || !selectedObjIds.contains(fId)))
         continue;
       ArrayList<FlightInSector> seq=sectors.getSectorVisitSequence(f.flightId);
       int fIdx=-1;
@@ -717,21 +710,13 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     }
   }
   
-  protected int getDrawnObjIndex(String objId) {
-    if (flightDrawers==null || objId==null)
-      return -1;
-    for (int i=0; i<flightDrawers.length; i++)
-      if (objId.equals(flightDrawers[i].flightId))
-        return i;
-    return -1;
-  }
-  
   protected int[] getDrawnObjIndexes(String objId) {
     if (flightDrawers==null || objId==null)
       return null;
     ArrayList<Integer> iList=null;
     for (int i=0; i<flightDrawers.length; i++)
-      if (objId.equals(flightDrawers[i].flightId)) {
+      if (objId.equals(flightDrawers[i].flightId) ||
+              objId.equals(flightDrawers[i].origFlightId)) {
         if (iList==null)
           iList=new ArrayList<Integer>(10);
         iList.add(i);
@@ -774,7 +759,8 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
             RenderingHints.VALUE_ANTIALIAS_ON);
         gr.setRenderingHints(rh);
         for (int i = 0; i < flightDrawers.length; i++)
-          if (markedObjIds.contains(flightDrawers[i].flightId))
+          if (markedObjIds.contains(flightDrawers[i].flightId) ||
+                  markedObjIds.contains(flightDrawers[i].origFlightId))
             flightDrawers[i].drawSelected(gr);
       }
       g.drawImage(offMarked,0,0,null);
@@ -801,15 +787,9 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     Graphics2D gOff = off_Image_selected.createGraphics();
     gOff.drawImage(off_Image,0,0,null);
     for (int i=0; i<flightDrawers.length; i++)
-      if (selectedObjIds.contains(flightDrawers[i].flightId))
+      if (selectedObjIds.contains(flightDrawers[i].flightId) ||
+              selectedObjIds.contains(flightDrawers[i].origFlightId))
         flightDrawers[i].drawSelected(gOff);
-    /*
-    for (int i=0; i<selectedObjIds.size(); i++) {
-      int idx=getDrawnObjIndex(selectedObjIds.get(i));
-      if (idx>=0)
-        flightDrawers[idx].drawSelected(gOff);
-    }
-     */
     selection_Valid=true;
     g.drawImage(off_Image_selected,0,0,null);
   }
@@ -825,8 +805,9 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     ArrayList sorted=new ArrayList(selectedObjIds.size());
     if (sInFocus!=null)
       for (int i=0; i<sInFocus.sortedFlights.size(); i++) {
-        if (selectedObjIds.contains(sInFocus.sortedFlights.get(i).flightId))
-          sorted.add(sInFocus.sortedFlights.get(i).flightId);
+        FlightInSector f=sInFocus.sortedFlights.get(i);
+        if (selectedObjIds.contains(f.flightId))
+          sorted.add(f.flightId);
       }
     synchronized (selectedObjIds) {
       if (sorted.size() == selectedObjIds.size()) {
@@ -1017,7 +998,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       if (flight.entryTime.compareTo(t2)>=0)
         break;
       if (flight.entryTime.compareTo(t1)>=0)
-        newSelection.add(flight.flightId);
+        newSelection.add((flight.isModifiedVersion)?flight.origFlightId:flight.flightId);
     }
     selectFlights(newSelection);
   }
@@ -1030,7 +1011,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       if (flight.entryTime.compareTo(t2)>=0)
         break;
       if (flight.exitTime.compareTo(t1)>=0)
-        newSelection.add(flight.flightId);
+        newSelection.add((flight.isModifiedVersion)?flight.origFlightId:flight.flightId);
     }
     selectFlights(newSelection);
   }
@@ -1043,7 +1024,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       if (flight.entryTime.compareTo(t2)>=0)
         break;
       if (flight.exitTime.compareTo(t1)>=0 && flight.exitTime.compareTo(t2)<0)
-        newSelection.add(flight.flightId);
+        newSelection.add((flight.isModifiedVersion)?flight.origFlightId:flight.flightId);
     }
     selectFlights(newSelection);
   }
@@ -1056,7 +1037,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       if (flight.entryTime.compareTo(t2)>=0)
         break;
       if (flight.exitTime.compareTo(t2)>=0)
-        newSelection.add(flight.flightId);
+        newSelection.add((flight.isModifiedVersion)?flight.origFlightId:flight.flightId);
     }
     selectFlights(newSelection);
   }
@@ -1079,7 +1060,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
         if (!direct)
           continue;
         if (t1==null || applyTimeLimitsToExits) {
-          fIds.add(f.flightId);
+          fIds.add((f.isModifiedVersion)?f.origFlightId:f.flightId);
           continue;
         }
       }
@@ -1088,7 +1069,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
         continue;;
       if (t1==null || applyTimeLimitsToExits ||
               (fNext.entryTime.compareTo(t1)>=0 && fNext.entryTime.compareTo(t2)<0))
-        fIds.add(f.flightId);
+        fIds.add((f.isModifiedVersion)?f.origFlightId:f.flightId);
     }
     selectFlights(fIds);
   }
@@ -1435,7 +1416,8 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
           HashSet<String> newSelection=new HashSet<String>(250);
           for (int i = 0; i < flightDrawers.length; i++)
             if (flightDrawers[i].intersects(x0, y0, w, h))
-              newSelection.add(flightDrawers[i].flightId);
+              newSelection.add((flightDrawers[i].isModifiedVersion)?
+                                   flightDrawers[i].origFlightId:flightDrawers[i].flightId);
           if (!newSelection.isEmpty())
             if (showOnlySelectedFlights) {
               for (String id : newSelection)
@@ -1479,23 +1461,26 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
         if (e.getButton()>MouseEvent.BUTTON1)
           return;
         int fIdx = getFlightIdxAtPosition(e.getX(), e.getY());
-        if (fIdx >= 0)
+        if (fIdx >= 0) {
+          String fId=(flightDrawers[fIdx].isModifiedVersion) ?
+                          flightDrawers[fIdx].origFlightId : flightDrawers[fIdx].flightId;
           if (showOnlySelectedFlights) {
-            if (markedObjIds==null || !markedObjIds.contains(flightDrawers[fIdx].flightId)) {
-              if (markedObjIds==null)
-                markedObjIds=new HashSet<String>(100);
-              markedObjIds.add(flightDrawers[fIdx].flightId);
+            if (markedObjIds == null || !markedObjIds.contains(fId)) {
+              if (markedObjIds == null)
+                markedObjIds = new HashSet<String>(100);
+              markedObjIds.add(fId);
             }
             else
-              markedObjIds.remove(flightDrawers[fIdx].flightId);
+              markedObjIds.remove((flightDrawers[fIdx].isModifiedVersion) ?
+                                      flightDrawers[fIdx].origFlightId : flightDrawers[fIdx].flightId);
             updateMarked();
             sendActionEvent("object_marking");
           }
           else {
-            if (selectedObjIds == null || !selectedObjIds.contains(flightDrawers[fIdx].flightId)) {
+            if (selectedObjIds == null || !selectedObjIds.contains(fId)) {
               if (selectedObjIds == null)
                 selectedObjIds = new ArrayList<String>(50);
-              selectedObjIds.add(flightDrawers[fIdx].flightId);
+              selectedObjIds.add(fId);
               selection_Valid = false;
               if (showOnlySelectedFlights)
                 off_Valid = false;
@@ -1504,7 +1489,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
               sendActionEvent("object_selection");
             }
             else {
-              selectedObjIds.remove(flightDrawers[fIdx].flightId);
+              selectedObjIds.remove(fId);
               selection_Valid = false;
               if (showOnlySelectedFlights)
                 off_Valid = false;
@@ -1513,6 +1498,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
               sendActionEvent("object_selection");
             }
           }
+        }
       }
     }
   }
@@ -1585,6 +1571,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       }
       else;
     else
-      highlightObject(flightDrawers[fIdx].flightId);
+      highlightObject((flightDrawers[fIdx].isModifiedVersion) ?
+          flightDrawers[fIdx].origFlightId : flightDrawers[fIdx].flightId);
   }
 }

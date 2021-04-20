@@ -88,52 +88,74 @@ public class ScenarioDistinguisher extends SectorSet {
       if (sameSequence(seq,altSeq)) //the flight remains unchanged
         continue;
       for (int i=0; i<seq.size(); i++) {
-        OneSectorData sector=sectors.get(seq.get(i).sectorId);
-        sector.addFlight(seq.get(i));
-        sector=origSectors.get(sector.sectorId);
-        sector.addFlight(seq.get(i));
+        FlightInSector f=seq.get(i);
+        OneSectorData sector=sectors.get(f.sectorId);
+        sector.addFlight(f);
+        sector=origSectors.get(f.sectorId);
+        sector.addFlight(f);
       }
       flights.put(fId,seq);
       origFlights.put(fId,seq);
       if (altSeq!=null) {
         ArrayList<FlightInSector> altSeqCopy=new ArrayList<FlightInSector>(altSeq.size());
         for (int i = 0; i < altSeq.size(); i++) {
-          OneSectorData sector = altSectors.get(altSeq.get(i).sectorId);
           FlightInSector f=altSeq.get(i), fCopy=f.makeCopy();
           fCopy.isModifiedVersion=true;
+          fCopy.origFlightId=f.flightId;
+          fCopy.flightId+="_mod";
           altSeqCopy.add(fCopy);
+          OneSectorData sector = sectors.get(f.sectorId);
           sector.addFlight(fCopy);
-          sector=altSectors.get(sector.sectorId);
+          sector=altSectors.get(f.sectorId);
           sector.addFlight(f);
         }
         flights.put(fId+"_mod",altSeqCopy);
         altFlights.put(fId,altSeq);
       }
     }
-    if (flights.size()>altFlights.size() && altFlights.size()<sc2.flights.size())
-      //there are some flights in the second scenario that are absent in the first one
-      for (Map.Entry<String,ArrayList<FlightInSector>> entry:sc2.flights.entrySet()) {
-        String fId = entry.getKey();
-        if (!altFlights.containsKey(fId)) {
-          ArrayList<FlightInSector> altSeq=sc2.getSectorVisitSequence(fId);
-          if (altSeq!=null) {
-            ArrayList<FlightInSector> altSeqCopy=new ArrayList<FlightInSector>(altSeq.size());
-            for (int i = 0; i < altSeq.size(); i++) {
-              OneSectorData sector = altSectors.get(altSeq.get(i).sectorId);
-              FlightInSector f=altSeq.get(i), fCopy=f.makeCopy();
-              fCopy.isModifiedVersion=true;
-              altSeqCopy.add(fCopy);
-              sector.addFlight(fCopy);
-              sector=altSectors.get(sector.sectorId);
-              sector.addFlight(f);
-            }
-            flights.put(fId+"_mod",altSeqCopy);
-            altFlights.put(fId,altSeq);
+    //perhaps, there are some flights in the second scenario that are absent in the first one
+    for (Map.Entry<String,ArrayList<FlightInSector>> entry:sc2.flights.entrySet()) {
+      String fId = entry.getKey();
+      if (!sc1.flights.containsKey(fId)) {
+        ArrayList<FlightInSector> altSeq=sc2.getSectorVisitSequence(fId);
+        if (altSeq!=null) {
+          ArrayList<FlightInSector> altSeqCopy=new ArrayList<FlightInSector>(altSeq.size());
+          for (int i = 0; i < altSeq.size(); i++) {
+            FlightInSector f=altSeq.get(i), fCopy=f.makeCopy();
+            fCopy.isModifiedVersion=true;
+            fCopy.origFlightId=f.flightId;
+            fCopy.flightId+="_mod";
+            altSeqCopy.add(fCopy);
+            OneSectorData sector = sectors.get(f.sectorId);
+            sector.addFlight(fCopy);
+            sector=altSectors.get(f.sectorId);
+            sector.addFlight(f);
           }
+          flights.put(fId+"_mod",altSeqCopy);
+          altFlights.put(fId,altSeq);
         }
       }
+    }
     
     return sectors!=null && !sectors.isEmpty() && flights!=null && !flights.isEmpty();
+  }
+  
+  public int getNChangedFlights() {
+    if (origFlights==null || altFlights==null)
+      return 0;
+    return Math.max(origFlights.size(),altFlights.size());
+  }
+  
+  public int getNChangedFlights(String sectorId) {
+    if (origSectors==null && altSectors==null)
+      return 0;
+    OneSectorData s1=origSectors.get(sectorId), s2=altSectors.get(sectorId);
+    if (s1==null)
+      if (s2==null)
+        return 0;
+      else
+        return s2.getNFlights();
+    return Math.max(s1.getNFlights(),s2.getNFlights());
   }
   
   public void addOrigSector(OneSectorData sector) {

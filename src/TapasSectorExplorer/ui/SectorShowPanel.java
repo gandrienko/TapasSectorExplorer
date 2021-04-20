@@ -87,6 +87,8 @@ public class SectorShowPanel extends JPanel
       scDiff=new ScenarioDistinguisher();
       if (!scDiff.compareScenarios(scenarios[0],scenarios[1]))
         scDiff=null;
+      else
+        scDiff.name="difference";
     }
     
     setLayout(new BorderLayout());
@@ -106,7 +108,7 @@ public class SectorShowPanel extends JPanel
       if (scDiff!=null) {
         OneSectorData sDiff=scDiff.getSectorData(s.sectorId);
         if (sDiff!=null)
-          nChanged=sDiff.getNFlights();
+          nChanged=scDiff.getNChangedFlights(s.sectorId);
       }
       String txt=s.sectorId+" ("+nFlights+" flights";
       if (nChanged>0)

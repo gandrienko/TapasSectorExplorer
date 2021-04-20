@@ -32,6 +32,10 @@ public class FlightInSector implements Comparable<FlightInSector>{
    * Whether this is a modified version of the flight
    */
   public boolean isModifiedVersion=false;
+  /**
+   * For a modified version, the identifier of the original flight
+   */
+  public String origFlightId=null;
   
   public boolean equals (Object obj) {
     if (obj==null)
@@ -51,6 +55,8 @@ public class FlightInSector implements Comparable<FlightInSector>{
   public FlightInSector makeCopy() {
     FlightInSector f=new FlightInSector();
     f.flightId=flightId;
+    f.origFlightId=origFlightId;
+    f.isModifiedVersion=isModifiedVersion;
     f.sectorId=sectorId;
     f.entryTime=entryTime;
     f.exitTime=exitTime;
