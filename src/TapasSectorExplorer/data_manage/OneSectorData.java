@@ -75,6 +75,16 @@ public class OneSectorData {
     return sortedFlights.size();
   }
   
+  public int getNOrigFlights() {
+    if (sortedFlights==null || sortedFlights.isEmpty())
+      return 0;
+    int nOrig=0;
+    for (FlightInSector f:sortedFlights)
+      if (!f.isModifiedVersion)
+        ++nOrig;
+    return nOrig;
+  }
+  
   /**
    * @param binWidth - always in minutes
    */

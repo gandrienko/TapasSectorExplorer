@@ -241,7 +241,13 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
   
   public void countFlightsToAndFrom() {
     nComeFrom=(fromSorted==null)?null:new int[fromSorted.size()];
+    if (nComeFrom!=null)
+      for (int i=0; i<nComeFrom.length; i++)
+        nComeFrom[i]=0;
     nGoTo=(toSorted==null)?null:new int[toSorted.size()];
+    if (nGoTo!=null)
+      for (int i=0; i<nGoTo.length; i++)
+        nGoTo[i]=0;
     if (nComeFrom!=null || nGoTo!=null)
       for (int i=0; i<sInFocus.sortedFlights.size(); i++) {
         FlightInSector f = sInFocus.sortedFlights.get(i);
@@ -513,6 +519,20 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     }
   }
   
+  protected String makeTextForFocusSector() {
+    return sInFocus.sectorId+" ("+sInFocus.getNFlights()+")";
+  }
+  
+  protected String makeTextForFromSector (int idx) {
+    OneSectorData s=fromSorted.get(idx);
+    return s.sectorId+" ("+s.getNFlights()+"/"+nComeFrom[idx]+")";
+  }
+  
+  protected String makeTextForToSector (int idx) {
+    OneSectorData s=toSorted.get(idx);
+    return s.sectorId+" ("+s.getNFlights()+"/"+nGoTo[idx]+")";
+  }
+  
   public void paintComponent(Graphics gr) {
     int w=getWidth(), h=getHeight();
     if (w<10 || h<10)
@@ -589,7 +609,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     int y=yMarg+hFrom;
     g.drawLine(0,y,w,y);
     g.drawLine(0,y+hFocus,w,y+hFocus);
-    g.drawString(sInFocus.sectorId+" ("+sInFocus.getNFlights()+")",tMarg,y+asc+2);
+    g.drawString(makeTextForFocusSector(),tMarg,y+asc+2);
     g.setColor(focusSectorBkgColor);
     g.fillRect(0,y,w,hFocus);
     
@@ -599,9 +619,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       g.drawLine(0,y,w,y);
       g.drawLine(0,y+hOther,w,y+hOther);
       int idx=nFrom-i-1;
-      OneSectorData s=fromSorted.get(idx);
-      String txt=s.sectorId+" ("+s.getNFlights()+"/"+nComeFrom[idx]+")";
-      g.drawString(txt,tMarg,y+asc+2);
+      g.drawString(makeTextForFromSector(idx),tMarg,y+asc+2);
       g.setColor(fromSectorBkgColor);
       g.fillRect(0,y,w,hOther);
     }
@@ -611,9 +629,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       g.setColor(toSectorColor);
       g.drawLine(0,y,w,y);
       g.drawLine(0,y+hOther,w,y+hOther);
-      OneSectorData s=toSorted.get(i);
-      String txt=s.sectorId+" ("+s.getNFlights()+"/"+nGoTo[i]+")";
-      g.drawString(txt,tMarg,y+asc+2);
+      g.drawString(makeTextForToSector(i),tMarg,y+asc+2);
       g.setColor(toSectorBkgColor);
       g.fillRect(0,y,w,hOther);
     }

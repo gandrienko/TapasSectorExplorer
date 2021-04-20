@@ -11,11 +11,64 @@ import java.util.ArrayList;
 
 public class ComparisonCanvas extends SectorShowCanvas {
   public ScenarioDistinguisher scDiff=null;
-  
+  /**
+   * For each "from" sector, the number of the modified flight versions
+   * that visit this sector before    * the focus sector,
+   * possibly, with some sector visits in between.
+   */
+  public int nComeFromMod[]=null;
+  /**
+   * For each "to" sector, the number of the modified flight versions
+   * that visit this sector after the focus sector,
+   * possibly, with some sector visits in between.
+   */
+  public int nGoToMod[]=null;
   
   public ComparisonCanvas(ScenarioDistinguisher scDiff) {
     super(scDiff);
     this.scDiff=scDiff;
+  }
+  
+  public void countFlightsToAndFrom() {
+    nComeFrom=(fromSorted==null)?null:new int[fromSorted.size()];
+    nComeFromMod=(fromSorted==null)?null:new int[fromSorted.size()];
+    if (nComeFrom!=null)
+      for (int i=0; i<nComeFrom.length; i++)
+        nComeFrom[i] = nComeFromMod[i] = 0;
+    nGoTo=(toSorted==null)?null:new int[toSorted.size()];
+    nGoToMod=(toSorted==null)?null:new int[toSorted.size()];
+    if (nGoTo!=null)
+      for (int i=0; i<nGoTo.length; i++)
+        nGoTo[i]=nGoToMod[i]=0;
+    if (nComeFrom!=null || nGoTo!=null)
+      for (int i=0; i<sInFocus.sortedFlights.size(); i++) {
+        FlightInSector f = sInFocus.sortedFlights.get(i);
+        if (f.prevSectorId!=null && sectors.hasSector(f.prevSectorId) && fromSorted!=null)
+          for (int j=0; j<fromSorted.size(); j++) {
+            OneSectorData s=sectors.getSectorData(fromSorted.get(j).sectorId);
+            if (f.prevSectorId.equals(s.sectorId) ||
+                    s.getFlightData(f.flightId,f.entryTime,null)!=null)
+              if (f.isModifiedVersion)
+                ++nComeFromMod[j];
+              else
+                ++nComeFrom[j];
+          }
+        if (f.nextSectorId!=null && sectors.hasSector(f.nextSectorId) && toSorted!=null)
+          for (int j=0; j<toSorted.size(); j++) {
+            OneSectorData s=sectors.getSectorData(toSorted.get(j).sectorId);
+            if (f.nextSectorId.equals(s.sectorId) ||
+                    s.getFlightData(f.flightId,null,f.exitTime)!=null)
+              if (f.isModifiedVersion)
+                ++nGoToMod[j];
+              else
+                ++nGoTo[j];
+          }
+      }
+  }
+  
+  protected String makeTextForFocusSector() {
+    int nAll=sInFocus.getNFlights(), nOrig=sInFocus.getNOrigFlights();
+    return sInFocus.sectorId+" ("+nOrig+" + "+(nAll-nOrig)+")";
   }
   
   protected void showSectorVisitAggregates(Graphics g, String sectorId, int y0, int fullH, int fullW) {
