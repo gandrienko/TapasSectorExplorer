@@ -18,6 +18,14 @@ import java.util.HashSet;
 public class SectorShowPanel extends JPanel
     implements ActionListener, ItemListener, ChangeListener, MouseListener {
   /**
+   * One or two scenarios (sector sets). In case of two scenarios, they are compared
+   */
+  public SectorSet scenarios[]=null;
+  /**
+   * In case of comparison of two scenarios, here are the differences.
+   */
+  public ScenarioDistinguisher scDiff=null;
+  /**
    * The canvas(es) with the visual representation. There may be several canvases
    * representing different scenarios
    */
@@ -82,7 +90,7 @@ public class SectorShowPanel extends JPanel
     super();
     if (scenarios==null || scenarios.length<1 || scenarios[0]==null || scenarios[0].getNSectors()<1)
       return;
-    ScenarioDistinguisher scDiff=null;
+    this.scenarios=scenarios;
     if (scenarios.length>1) {
       scDiff=new ScenarioDistinguisher();
       if (!scDiff.compareScenarios(scenarios[0],scenarios[1]))
@@ -97,6 +105,7 @@ public class SectorShowPanel extends JPanel
     add(bp,BorderLayout.SOUTH);
 
     sectorList =SectorSet.getSectorList(scenarios);
+    sortSectorsByNChanged();
     chSectors=new JComboBox();
     chSectors.addActionListener(this);
     
@@ -128,13 +137,22 @@ public class SectorShowPanel extends JPanel
       chSectors.setSelectedIndex(maxChangeIdx);
     else
       chSectors.setSelectedIndex(maxIdx);
+    chSectors.addMouseListener(this);
+    chSectors.setToolTipText("Press right mouse button to sort the list of sectors");
+    ToolTipManager.sharedInstance().registerComponent(chSectors);
+    ToolTipManager.sharedInstance().setDismissDelay(Integer.MAX_VALUE);
     
     JPanel p=new JPanel(new BorderLayout(10,2));
     bp.add(p);
   
     JPanel pp=new JPanel(new FlowLayout(FlowLayout.LEFT,5,2));
     p.add(pp,BorderLayout.WEST);
-    pp.add(new JLabel("Sectors:"));
+    JLabel lab=new JLabel("Sectors:");
+    pp.add(lab);
+    lab.addMouseListener(this);
+    lab.setToolTipText("Press right mouse button to sort the list of sectors");
+    ToolTipManager.sharedInstance().registerComponent(lab);
+    ToolTipManager.sharedInstance().setDismissDelay(Integer.MAX_VALUE);
     pp.add(chSectors);
     backButton=new JButton("back to previous");
     backButton.setActionCommand("back");
@@ -280,6 +298,86 @@ public class SectorShowPanel extends JPanel
     sectorSelections.add(chSectors.getSelectedIndex());
     //setPreferredSize(new Dimension(canvas.getPreferredSize().width+150,
         //canvas.getPreferredSize().height+50));
+  }
+  
+  protected void reOrderSectorChoice(ArrayList<Integer> sortedIndexes) {
+    if (sortedIndexes==null || chSectors==null || chSectors.getItemCount()<2)
+      return;
+    Object items[]=new Object[chSectors.getItemCount()];
+    for (int i=0; i<chSectors.getItemCount(); i++)
+      items[i]=chSectors.getItemAt(i);
+    Object selItem=chSectors.getSelectedItem();
+    chSectors.invalidate();
+    chSectors.removeActionListener(this);
+    chSectors.removeAllItems();
+    for (int i=0; i<sortedIndexes.size(); i++) {
+      int idx=sortedIndexes.get(i);
+      chSectors.addItem(items[idx]);
+    }
+    chSectors.setSelectedItem(selItem);
+    chSectors.validate();
+    chSectors.addActionListener(this);
+  }
+  
+  public void sortSectorsByName() {
+    if (sectorList==null || sectorList.size()<2)
+      return;
+    ArrayList<Integer> sortedIndexes=new ArrayList<Integer>(sectorList.size());
+    for (int i = 0; i< sectorList.size(); i++) {
+      OneSectorData s= sectorList.get(i);
+      int idx;
+      for (idx=0; idx<sortedIndexes.size() &&
+                      s.sectorId.compareTo(sectorList.get(sortedIndexes.get(idx)).sectorId)>0;
+           idx++);
+      sortedIndexes.add(idx,i);
+    }
+    ArrayList<OneSectorData> sortedSectors=new ArrayList<OneSectorData>(sectorList.size());
+    for (int i=0; i<sortedIndexes.size(); i++)
+      sortedSectors.add(sectorList.get(sortedIndexes.get(i)));
+    sectorList=sortedSectors;
+    reOrderSectorChoice(sortedIndexes);
+  }
+  
+  public void sortSectorsByNFlights () {
+    if (sectorList==null || sectorList.size()<2)
+      return;
+    ArrayList<Integer> sortedIndexes=new ArrayList<Integer>(sectorList.size());
+    for (int i = 0; i< sectorList.size(); i++) {
+      OneSectorData s= sectorList.get(i);
+      int idx;
+      for (idx=0; idx<sortedIndexes.size() &&
+                      s.getNFlights()<=sectorList.get(sortedIndexes.get(idx)).getNFlights();
+           idx++);
+      sortedIndexes.add(idx,i);
+    }
+    ArrayList<OneSectorData> sortedSectors=new ArrayList<OneSectorData>(sectorList.size());
+    for (int i=0; i<sortedIndexes.size(); i++)
+      sortedSectors.add(sectorList.get(sortedIndexes.get(i)));
+    sectorList=sortedSectors;
+    reOrderSectorChoice(sortedIndexes);
+  }
+  
+  public void sortSectorsByNChanged () {
+    if (sectorList==null || sectorList.size()<2 || scDiff==null)
+      return;
+    int nChanged[]=new int[sectorList.size()];
+    for (int i=0; i<sectorList.size(); i++) {
+      OneSectorData s= sectorList.get(i);
+      nChanged[i]=scDiff.getNChangedFlights(s.sectorId);
+    }
+    ArrayList<Integer> sortedIndexes=new ArrayList<Integer>(sectorList.size());
+    for (int i = 0; i< sectorList.size(); i++) {
+      int idx=0;
+      for (idx=0; idx<sortedIndexes.size() &&
+                      nChanged[sortedIndexes.get(idx)]>nChanged[i];
+           idx++);
+      sortedIndexes.add(idx,i);
+    }
+    ArrayList<OneSectorData> sortedSectors=new ArrayList<OneSectorData>(sectorList.size());
+    for (int i=0; i<sortedIndexes.size(); i++)
+      sortedSectors.add(sectorList.get(sortedIndexes.get(i)));
+    sectorList=sortedSectors;
+    reOrderSectorChoice(sortedIndexes);
   }
   
   public void putSectorInFocus(String sectorId) {
@@ -608,44 +706,93 @@ public class SectorShowPanel extends JPanel
     clipboard.setContents(new StringSelection(txt.toString()),null);
   }
   
-  protected JPopupMenu popupMenu=null;
+  protected JPopupMenu clipboardMenu =null, sortMenu=null;
   
   public void mousePressed(MouseEvent e) {
     if (sectorsFlightsViews==null || sectorsFlightsViews.length<1)
       return;
-    if (sectorsFlightsViews[0].hasSelectedVisibleObjects() &&
-        e.getSource().equals(labSelFlights) && e.getButton()>MouseEvent.BUTTON1) {
-      Point p=getMousePosition();
-      if (p==null)
+    if (e.getButton()>MouseEvent.BUTTON1) {
+      Point p = getMousePosition();
+      if (p == null)
         return;
-      if (popupMenu !=null) {
-        popupMenu.show(this, p.x, p.y);
-        return;
+      if (e.getSource().equals(labSelFlights)) {
+        if (!sectorsFlightsViews[0].hasSelectedVisibleObjects()) {
+          if (clipboardMenu != null && clipboardMenu.isVisible())
+            clipboardMenu.setVisible(false);
+          return;
+        }
+        if (clipboardMenu != null) {
+          clipboardMenu.show(this, p.x, p.y);
+          return;
+        }
+        clipboardMenu = new JPopupMenu();
+        JMenuItem mit;
+        clipboardMenu.add(mit= new JMenuItem("Put identifiers to clipboard"));
+        mit.addActionListener(new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent e) {
+            clipboardMenu.setVisible(false);
+            putSelectedIdsToClipboard();
+          }
+        });
+        clipboardMenu.add(mit= new JMenuItem("Put paths to clipboard"));
+        mit.addActionListener(new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent e) {
+            clipboardMenu.setVisible(false);
+            putSelectedFlightPathsToClipboard();
+          }
+        });
+        clipboardMenu.show(this, p.x, p.y);
       }
-      popupMenu = new JPopupMenu();
-      JMenuItem mit=new JMenuItem("Put identifiers to clipboard");
-      popupMenu.add(mit);
-      mit.addActionListener(new ActionListener() {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-          popupMenu.setVisible(false);
-          putSelectedIdsToClipboard();
+      else {
+        boolean sorting=false;
+        if (e.getSource() instanceof JLabel)
+          sorting=((JLabel)e.getSource()).getText().equals("Sectors:");
+        else
+          sorting=e.getSource().equals(chSectors);
+        if (sorting) {
+          if (sortMenu!=null) {
+            sortMenu.show(this,p.x,p.y);
+            return;
+          }
         }
-      });
-      mit=new JMenuItem("Put paths to clipboard");
-      popupMenu.add(mit);
-      mit.addActionListener(new ActionListener() {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-          popupMenu.setVisible(false);
-          putSelectedFlightPathsToClipboard();
+        sortMenu=new JPopupMenu();
+        JMenuItem mit;
+        sortMenu.add(mit= new JMenuItem("Sort by identifiers"));
+        mit.addActionListener(new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent e) {
+            sortMenu.setVisible(false);
+            sortSectorsByName();
+          }
+        });
+        sortMenu.add(mit= new JMenuItem("Sort by flight counts"));
+        mit.addActionListener(new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent e) {
+            sortMenu.setVisible(false);
+            sortSectorsByNFlights();
+          }
+        });
+        if (scDiff!=null) {
+          sortMenu.add(mit= new JMenuItem("Sort by counts of changed flights"));
+          mit.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+              sortMenu.setVisible(false);
+              sortSectorsByNChanged();
+            }
+          });
         }
-      });
-      popupMenu.show(this, p.x, p.y);
+      }
     }
-    else
-      if (popupMenu!=null && popupMenu.isVisible())
-        popupMenu.setVisible(false);
+    else {
+      if (clipboardMenu != null && clipboardMenu.isVisible())
+        clipboardMenu.setVisible(false);
+      if (sortMenu != null && sortMenu.isVisible())
+        sortMenu.setVisible(false);
+    }
   }
   
   public void mouseClicked(MouseEvent e) {}

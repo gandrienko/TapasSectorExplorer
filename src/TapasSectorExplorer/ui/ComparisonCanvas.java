@@ -68,7 +68,19 @@ public class ComparisonCanvas extends SectorShowCanvas {
   
   protected String makeTextForFocusSector() {
     int nAll=sInFocus.getNFlights(), nOrig=sInFocus.getNOrigFlights();
-    return sInFocus.sectorId+" ("+nOrig+" + "+(nAll-nOrig)+")";
+    return sInFocus.sectorId+" ("+nOrig+"+"+(nAll-nOrig)+")";
+  }
+  
+  protected String makeTextForFromSector (int idx) {
+    OneSectorData s=fromSorted.get(idx);
+    int nAll=s.getNFlights(), nOrig=s.getNOrigFlights();
+    return s.sectorId+" ("+nOrig+"+"+(nAll-nOrig)+" /" +nComeFrom[idx]+"+"+nComeFromMod[idx]+")";
+  }
+  
+  protected String makeTextForToSector (int idx) {
+    OneSectorData s=toSorted.get(idx);
+    int nAll=s.getNFlights(), nOrig=s.getNOrigFlights();
+    return s.sectorId+" ("+nOrig+"+"+(nAll-nOrig)+" /" +nGoTo[idx]+"+"+nGoToMod[idx]+")";
   }
   
   protected void showSectorVisitAggregates(Graphics g, String sectorId, int y0, int fullH, int fullW) {
