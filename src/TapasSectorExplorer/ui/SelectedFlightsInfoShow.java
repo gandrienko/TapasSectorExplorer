@@ -43,6 +43,10 @@ public class SelectedFlightsInfoShow extends JPanel
    */
   protected HashSet<String> markedObjIds=null;
   /**
+   * The identifier of the flight in focus (the whole path is shown)
+   */
+  protected String focusFlighghId=null;
+  /**
    * Whether to allow marking and unmarking of the items in the list
    */
   public boolean allowMarking=false;
@@ -219,6 +223,9 @@ public class SelectedFlightsInfoShow extends JPanel
           flPanels.add(pan);
           pan.setLayout(new BoxLayout(pan, BoxLayout.Y_AXIS));
           
+          if (fId.equals(focusFlighghId))
+            pan.setBorder(BorderFactory.createLineBorder(Color.ORANGE,3));
+          else
           if (markedObjIds!=null && markedObjIds.contains(fId))
             pan.setBorder(BorderFactory.createLineBorder(Color.BLACK,1));
           
@@ -357,6 +364,41 @@ public class SelectedFlightsInfoShow extends JPanel
     this.allowMarking=allow;
   }
   
+  public void setFocusFlighghId(String fId) {
+    if (fId==null)
+      if (focusFlighghId==null)
+        return;
+      else;
+    else
+      if (fId.equals(focusFlighghId))
+        return;
+    if (focusFlighghId!=null)
+      for (int i=0; i<panelFlIds.size(); i++)
+        if (panelFlIds.get(i).equals(focusFlighghId)) {
+          JPanel pan = flPanels.get(i);
+          pan.setBorder(null);
+          pan.invalidate();
+          pan.repaint();
+          break;
+        }
+    focusFlighghId=fId;
+    int y=-1;
+    if (focusFlighghId!=null)
+      for (int i=0; i<panelFlIds.size(); i++)
+        if (panelFlIds.get(i).equals(focusFlighghId)) {
+          JPanel pan = flPanels.get(i);
+          pan.setBorder(BorderFactory.createLineBorder(Color.orange, 3));
+          pan.invalidate();
+          pan.repaint();
+          y = pan.getY();
+        }
+    if (y>=0 && (getParent() instanceof JViewport) &&
+            (getParent().getParent() instanceof JScrollPane)) {
+      JScrollPane sp=(JScrollPane)getParent().getParent();
+      sp.getVerticalScrollBar().setValue(y);
+    }
+  }
+  
   public void itemStateChanged(ItemEvent e) {
     if (e.getSource() instanceof JCheckBox) {
       JCheckBox cb=(JCheckBox)e.getSource();
@@ -405,6 +447,7 @@ public class SelectedFlightsInfoShow extends JPanel
           popupMenu.add("Flight " + fId);
           mitShowPath = new JCheckBoxMenuItem("Show whole path");
           mitShowPath.setActionCommand(fId);
+          mitShowPath.setState(fId.equals(focusFlighghId));
           mitShowPath.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -436,13 +479,13 @@ public class SelectedFlightsInfoShow extends JPanel
           String fId=panelFlIds.get(pIdx);
           if (!mitShowPath.getActionCommand().equals(fId)) {
             mitShowPath.setEnabled(false);
-            mitShowPath.setState(false);
+            mitShowPath.setState(fId.equals(focusFlighghId));
             mitShowPath.setActionCommand(panelFlIds.get(pIdx));
             mitShowPath.setEnabled(true);
             ((JMenuItem) popupMenu.getComponent(0)).setText("Flight " + fId);
   
-            mitMark.setState(markedObjIds!=null && markedObjIds.contains(fId));
             mitMark.setEnabled(allowMarking);
+            mitMark.setState(markedObjIds!=null && markedObjIds.contains(fId));
             mitMark.setActionCommand(fId);
           }
         }

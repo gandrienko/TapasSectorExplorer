@@ -494,15 +494,18 @@ public class SectorShowPanel extends JPanel
       }
       else
       if (cmd.startsWith("show_path:")) {
+        String fId=cmd.substring(10);
         if (sectorsFlightsViews !=null)
           for (int i = 0; i< sectorsFlightsViews.length; i++)
-            sectorsFlightsViews[i].setFocusFlight(cmd.substring(10));
+            sectorsFlightsViews[i].setFocusFlight(fId);
+        flInfoPanel.setFocusFlighghId(fId);
       }
       else
       if (cmd.startsWith("cancel_path_show:"))  {
         if (sectorsFlightsViews !=null)
           for (int i = 0; i< sectorsFlightsViews.length; i++)
             sectorsFlightsViews[i].setFocusFlight(null);
+        flInfoPanel.setFocusFlighghId(null);
       }
       else
       if (cmd.startsWith("mark:") || cmd.startsWith("unmark:")) {
