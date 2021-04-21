@@ -498,14 +498,14 @@ public class SectorShowPanel extends JPanel
         if (sectorsFlightsViews !=null)
           for (int i = 0; i< sectorsFlightsViews.length; i++)
             sectorsFlightsViews[i].setFocusFlight(fId);
-        flInfoPanel.setFocusFlighghId(fId);
+        flInfoPanel.setFocusFlightId(fId);
       }
       else
       if (cmd.startsWith("cancel_path_show:"))  {
         if (sectorsFlightsViews !=null)
           for (int i = 0; i< sectorsFlightsViews.length; i++)
             sectorsFlightsViews[i].setFocusFlight(null);
-        flInfoPanel.setFocusFlighghId(null);
+        flInfoPanel.setFocusFlightId(null);
       }
       else
       if (cmd.startsWith("mark:") || cmd.startsWith("unmark:")) {
