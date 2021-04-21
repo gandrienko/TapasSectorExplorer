@@ -188,21 +188,26 @@ public class SelectedFlightsInfoShow extends JPanel
       for (int n=0; n<nLoops && nAdded<selectedFlIds.size(); n++) {
         boolean addVisible=n<nLoops-1;
         if (!addVisible) {
-          add(Box.createRigidArea(new Dimension(0,1)));
+          JPanel pan = new JPanel();
+          pan.setLayout(new BoxLayout(pan, BoxLayout.Y_AXIS));
+          add(pan);
+          if (nAdded>0) {
+            pan.add(Box.createRigidArea(new Dimension(0, 1)));
+            JSeparator sep = new JSeparator(JSeparator.HORIZONTAL);
+            sep.setBackground(Color.blue);
+            sep.setForeground(Color.blue);
+            pan.add(sep);
+          }
+          pan.add(Box.createRigidArea(new Dimension(0,1)));
+          JLabel lab=new JLabel("Not in current view:");
+          lab.setForeground(Color.blue);
+          pan.add(lab);
+          pan.add(Box.createRigidArea(new Dimension(0,1)));
           JSeparator sep=new JSeparator(JSeparator.HORIZONTAL);
           sep.setBackground(Color.blue);
           sep.setForeground(Color.blue);
-          add(sep);
-          add(Box.createRigidArea(new Dimension(0,1)));
-          JLabel lab=new JLabel("Not in current view:",JLabel.CENTER);
-          lab.setForeground(Color.blue);
-          add(lab);
-          add(Box.createRigidArea(new Dimension(0,1)));
-          sep=new JSeparator(JSeparator.HORIZONTAL);
-          sep.setBackground(Color.blue);
-          sep.setForeground(Color.blue);
-          add(sep);
-          add(Box.createRigidArea(new Dimension(0,2)));
+          pan.add(sep);
+          pan.add(Box.createRigidArea(new Dimension(0,2)));
         }
         for (int i = 0; i < selectedFlIds.size() && nAdded<selectedFlIds.size(); i++) {
           String fId=selectedFlIds.get(i);
