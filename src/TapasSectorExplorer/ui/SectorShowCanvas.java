@@ -162,12 +162,10 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
         ss=new OneSectorData();
         ss.sectorId = s.sectorId;
         ss.capacity = s.capacity;
-      }
-      ss.addFlight(f);
-      if (toAddSector) {
         fromSectors.addSector(ss);
         fromSorted.add(ss);
       }
+      ss.addFlight(f);
     }
     for (int i=idxFocusSector+1; i<seq.size(); i++) {
       FlightInSector f=seq.get(i);
@@ -178,12 +176,10 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
         ss=new OneSectorData();
         ss.sectorId = s.sectorId;
         ss.capacity = s.capacity;
-      }
-      ss.addFlight(f);
-      if (toAddSector) {
         toSectors.addSector(ss);
         toSorted.add(ss);
       }
+      ss.addFlight(f);
     }
   }
   
