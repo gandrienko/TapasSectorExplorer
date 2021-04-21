@@ -29,6 +29,67 @@ public class ComparisonCanvas extends SectorShowCanvas {
     this.scDiff=scDiff;
   }
   
+  protected void getSectorsForFlight(ArrayList<FlightInSector> seq) {
+    if (seq==null || seq.isEmpty())
+      return;
+    super.getSectorsForFlight(seq);
+    ArrayList<FlightInSector> seq2=scDiff.getModifiedFlightVersion(seq.get(0).flightId);
+    if (seq2==null || seq2.isEmpty())
+      return;
+    int idxFocusSector=-1;
+    for (int i=0; i<seq2.size() && idxFocusSector<0; i++)
+      if (sInFocus.sectorId.equals(seq2.get(i).sectorId))
+        idxFocusSector=i;
+    if (idxFocusSector<0)
+      return;
+  
+    int idx0=fromSorted.size();
+    for (int i=idxFocusSector-1; i>=0; i--) {
+      FlightInSector f=seq2.get(i);
+      OneSectorData ss = fromSectors.getSectorData(f.sectorId);
+      boolean toAddSector=ss==null;
+      if (toAddSector) {
+        OneSectorData s=sectors.getSectorData(f.sectorId);
+        ss=new OneSectorData();
+        ss.sectorId = s.sectorId;
+        ss.capacity = s.capacity;
+      }
+      else
+        for (int j=0; j<fromSorted.size(); j++)
+          if (ss.sectorId.equals(fromSorted.get(j).sectorId)) {
+            idx0=j+1; break;
+          }
+      ss.addFlight(f);
+      if (toAddSector) {
+        fromSectors.addSector(ss);
+        fromSorted.add(idx0++,ss);
+      }
+    }
+    idx0=0;
+    for (int i=idxFocusSector+1; i<seq2.size(); i++) {
+      FlightInSector f=seq2.get(i);
+      OneSectorData ss = toSectors.getSectorData(f.sectorId);
+      boolean toAddSector=ss==null;
+      if (toAddSector) {
+        OneSectorData s=sectors.getSectorData(f.sectorId);
+        ss=new OneSectorData();
+        ss.sectorId = s.sectorId;
+        ss.capacity = s.capacity;
+      }
+      else
+        for (int j=0; j<toSorted.size(); j++)
+          if (ss.sectorId.equals(toSorted.get(j).sectorId)) {
+            idx0=j+1; break;
+          }
+      ss.addFlight(f);
+      if (toAddSector) {
+        toSectors.addSector(ss);
+        toSorted.add(idx0++,ss);
+      }
+    }
+  
+  }
+  
   public void countFlightsToAndFrom() {
     nComeFrom=(fromSorted==null)?null:new int[fromSorted.size()];
     nComeFromMod=(fromSorted==null)?null:new int[fromSorted.size()];

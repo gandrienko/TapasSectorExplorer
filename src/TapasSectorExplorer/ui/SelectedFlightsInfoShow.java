@@ -57,7 +57,6 @@ public class SelectedFlightsInfoShow extends JPanel
   public SelectedFlightsInfoShow(SectorSet sectors){
     super();
     this.sectors=sectors;
-    setLayout(new BoxLayout(this,BoxLayout.Y_AXIS));
     addMouseMotionListener(this);
     addMouseListener(this);
   }
@@ -176,27 +175,28 @@ public class SelectedFlightsInfoShow extends JPanel
       flPanels.clear();
     if (panelFlIds !=null)
       panelFlIds.clear();
-
+  
+    setLayout(new BoxLayout(this,BoxLayout.Y_AXIS));
     if (sectors!=null && selectedFlIds!=null && !selectedFlIds.isEmpty()) {
       int nAdded=0, nLoops=(visibleFlIds==null || visibleFlIds.isEmpty())?1:2;
       for (int n=0; n<nLoops && nAdded<selectedFlIds.size(); n++) {
         boolean addVisible=n<nLoops-1;
         if (!addVisible) {
-          add(Box.createVerticalStrut(1));
+          add(Box.createRigidArea(new Dimension(0,1)));
           JSeparator sep=new JSeparator(JSeparator.HORIZONTAL);
           sep.setBackground(Color.blue);
           sep.setForeground(Color.blue);
           add(sep);
-          add(Box.createVerticalStrut(1));
+          add(Box.createRigidArea(new Dimension(0,1)));
           JLabel lab=new JLabel("Not in current view:",JLabel.CENTER);
           lab.setForeground(Color.blue);
           add(lab);
-          add(Box.createVerticalStrut(1));
+          add(Box.createRigidArea(new Dimension(0,1)));
           sep=new JSeparator(JSeparator.HORIZONTAL);
           sep.setBackground(Color.blue);
           sep.setForeground(Color.blue);
           add(sep);
-          add(Box.createVerticalStrut(5));
+          add(Box.createRigidArea(new Dimension(0,2)));
         }
         for (int i = 0; i < selectedFlIds.size() && nAdded<selectedFlIds.size(); i++) {
           String fId=selectedFlIds.get(i);
@@ -285,7 +285,10 @@ public class SelectedFlightsInfoShow extends JPanel
           if (altSeq!=null && altSeq.size()>seq.size())
             for (int j=seq.size(); j<altSeq.size(); j++) {
               FlightInSector fAlt=altSeq.get(j);
-              String txt="<html><body><font color=\"#BB0000\"><u>"+fAlt.sectorId + "</u>: "+
+              String txt="<html><body>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;"+
+                             "&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;"+
+                             "&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;"+
+                             "<font color=\"#BB0000\">"+">>> "+"<u>"+fAlt.sectorId + "</u>: "+
                              fAlt.entryTime + ".." + fAlt.exitTime + "</font></body></html>";
               JLabel lab = new JLabel(txt);
               svLabels.add(lab);
