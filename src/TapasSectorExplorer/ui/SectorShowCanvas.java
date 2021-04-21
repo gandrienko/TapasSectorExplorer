@@ -145,33 +145,45 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       fromSorted=new ArrayList<OneSectorData>(seq.size()*2);
     if (toSorted==null)
       toSorted=new ArrayList<OneSectorData>(seq.size()*2);
-    
-    boolean previous=true;
-    
-    for (int j=0; j<seq.size(); j++) {
-      FlightInSector f = seq.get(j);
-      OneSectorData s=sectors.getSectorData(f.sectorId);
-      if (s.equals(sInFocus)) {
-        previous=false;
-        continue;
-      }
-      OneSectorData ss = (previous)?fromSectors.getSectorData(s.sectorId):toSectors.getSectorData(s.sectorId);
+  
+    int idxFocusSector=-1;
+    for (int i=0; i<seq.size() && idxFocusSector<0; i++)
+      if (sInFocus.sectorId.equals(seq.get(i).sectorId))
+        idxFocusSector=i;
+    if (idxFocusSector<0)
+      return;
+  
+    for (int i=idxFocusSector-1; i>=0; i--) {
+      FlightInSector f=seq.get(i);
+      OneSectorData ss = fromSectors.getSectorData(f.sectorId);
       boolean toAddSector=ss==null;
       if (toAddSector) {
+        OneSectorData s=sectors.getSectorData(f.sectorId);
         ss=new OneSectorData();
         ss.sectorId = s.sectorId;
         ss.capacity = s.capacity;
       }
       ss.addFlight(f);
-      if (toAddSector)
-        if (previous) {
-          fromSectors.addSector(ss);
-          fromSorted.add(0,ss);
-        }
-        else {
-          toSectors.addSector(ss);
-          toSorted.add(ss);
-        }
+      if (toAddSector) {
+        fromSectors.addSector(ss);
+        fromSorted.add(ss);
+      }
+    }
+    for (int i=idxFocusSector+1; i<seq.size(); i++) {
+      FlightInSector f=seq.get(i);
+      OneSectorData ss = toSectors.getSectorData(f.sectorId);
+      boolean toAddSector=ss==null;
+      if (toAddSector) {
+        OneSectorData s=sectors.getSectorData(f.sectorId);
+        ss=new OneSectorData();
+        ss.sectorId = s.sectorId;
+        ss.capacity = s.capacity;
+      }
+      ss.addFlight(f);
+      if (toAddSector) {
+        toSectors.addSector(ss);
+        toSorted.add(ss);
+      }
     }
   }
   

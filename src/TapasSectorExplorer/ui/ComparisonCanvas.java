@@ -32,20 +32,30 @@ public class ComparisonCanvas extends SectorShowCanvas {
   protected void getSectorsForFlight(ArrayList<FlightInSector> seq) {
     if (seq==null || seq.isEmpty())
       return;
-    super.getSectorsForFlight(seq);
-    ArrayList<FlightInSector> seq2=scDiff.getModifiedFlightVersion(seq.get(0).flightId);
-    if (seq2==null || seq2.isEmpty())
-      return;
-    int idxFocusSector=-1;
-    for (int i=0; i<seq2.size() && idxFocusSector<0; i++)
-      if (sInFocus.sectorId.equals(seq2.get(i).sectorId))
-        idxFocusSector=i;
-    if (idxFocusSector<0)
-      return;
+    if (fromSorted==null)
+      fromSorted=new ArrayList<OneSectorData>(seq.size()*2);
+    if (toSorted==null)
+      toSorted=new ArrayList<OneSectorData>(seq.size()*2);
   
-    int idx0=fromSorted.size();
-    for (int i=idxFocusSector-1; i>=0; i--) {
-      FlightInSector f=seq2.get(i);
+    int idxFC1=-1;
+    for (int i=0; i<seq.size() && idxFC1<0; i++)
+      if (sInFocus.sectorId.equals(seq.get(i).sectorId))
+        idxFC1=i;
+    if (idxFC1<0)
+      return;
+
+    ArrayList<FlightInSector> seq2=scDiff.getModifiedFlightVersion(seq.get(0).flightId);
+    int idxFC2=-1;
+    if (seq2!=null)
+      for (int i=0; i<seq2.size() && idxFC2<0; i++)
+        if (sInFocus.sectorId.equals(seq2.get(i).sectorId))
+          idxFC2=i;
+    if (idxFC2<0)
+      seq2=null;
+    int idxDiff=(seq2==null)?0:idxFC2-idxFC1;
+  
+    for (int i=idxFC1-1; i>=0; i--) {
+      FlightInSector f=seq.get(i);
       OneSectorData ss = fromSectors.getSectorData(f.sectorId);
       boolean toAddSector=ss==null;
       if (toAddSector) {
@@ -54,20 +64,52 @@ public class ComparisonCanvas extends SectorShowCanvas {
         ss.sectorId = s.sectorId;
         ss.capacity = s.capacity;
       }
-      else
-        for (int j=0; j<fromSorted.size(); j++)
-          if (ss.sectorId.equals(fromSorted.get(j).sectorId)) {
-            idx0=j+1; break;
-          }
       ss.addFlight(f);
       if (toAddSector) {
         fromSectors.addSector(ss);
-        fromSorted.add(idx0++,ss);
+        fromSorted.add(ss);
+      }
+      if (seq2!=null && i+idxDiff>=0) {
+        FlightInSector f2=seq2.get(i+idxDiff);
+        if (f2.sectorId.equals(ss.sectorId))
+          ss.addFlight(f2);
+        else {
+          ss = fromSectors.getSectorData(f2.sectorId);
+          toAddSector=ss==null;
+          if (toAddSector) {
+            OneSectorData s=sectors.getSectorData(f.sectorId);
+            ss=new OneSectorData();
+            ss.sectorId = s.sectorId;
+            ss.capacity = s.capacity;
+          }
+          ss.addFlight(f);
+          if (toAddSector) {
+            fromSectors.addSector(ss);
+            fromSorted.add(ss);
+          }
+        }
       }
     }
-    idx0=0;
-    for (int i=idxFocusSector+1; i<seq2.size(); i++) {
-      FlightInSector f=seq2.get(i);
+    if (seq2!=null)
+      for (int i=idxDiff-1; i>=0; i--) {
+        FlightInSector f=seq2.get(i);
+        OneSectorData ss = fromSectors.getSectorData(f.sectorId);
+        boolean toAddSector=ss==null;
+        if (toAddSector) {
+          OneSectorData s=sectors.getSectorData(f.sectorId);
+          ss=new OneSectorData();
+          ss.sectorId = s.sectorId;
+          ss.capacity = s.capacity;
+        }
+        ss.addFlight(f);
+        if (toAddSector) {
+          fromSectors.addSector(ss);
+          fromSorted.add(ss);
+        }
+      }
+      
+    for (int i=idxFC1+1; i<seq.size(); i++) {
+      FlightInSector f=seq.get(i);
       OneSectorData ss = toSectors.getSectorData(f.sectorId);
       boolean toAddSector=ss==null;
       if (toAddSector) {
@@ -76,18 +118,49 @@ public class ComparisonCanvas extends SectorShowCanvas {
         ss.sectorId = s.sectorId;
         ss.capacity = s.capacity;
       }
-      else
-        for (int j=0; j<toSorted.size(); j++)
-          if (ss.sectorId.equals(toSorted.get(j).sectorId)) {
-            idx0=j+1; break;
-          }
       ss.addFlight(f);
       if (toAddSector) {
         toSectors.addSector(ss);
-        toSorted.add(idx0++,ss);
+        toSorted.add(ss);
+      }
+      if (seq2!=null && i+idxDiff<seq2.size()) {
+        FlightInSector f2=seq2.get(i+idxDiff);
+        if (f2.sectorId.equals(ss.sectorId))
+          ss.addFlight(f2);
+        else {
+          ss = toSectors.getSectorData(f2.sectorId);
+          toAddSector=ss==null;
+          if (toAddSector) {
+            OneSectorData s=sectors.getSectorData(f.sectorId);
+            ss=new OneSectorData();
+            ss.sectorId = s.sectorId;
+            ss.capacity = s.capacity;
+          }
+          ss.addFlight(f);
+          if (toAddSector) {
+            toSectors.addSector(ss);
+            toSorted.add(ss);
+          }
+        }
       }
     }
-  
+    if (seq2!=null)
+      for (int i=seq.size()+idxDiff; i<seq2.size(); i++) {
+        FlightInSector f=seq2.get(i);
+        OneSectorData ss = toSectors.getSectorData(f.sectorId);
+        boolean toAddSector=ss==null;
+        if (toAddSector) {
+          OneSectorData s=sectors.getSectorData(f.sectorId);
+          ss=new OneSectorData();
+          ss.sectorId = s.sectorId;
+          ss.capacity = s.capacity;
+        }
+        ss.addFlight(f);
+        if (toAddSector) {
+          toSectors.addSector(ss);
+          toSorted.add(ss);
+        }
+      }
   }
   
   public void countFlightsToAndFrom() {
