@@ -242,6 +242,7 @@ public class ComparisonCanvas extends SectorShowCanvas {
           else
             g.setColor(flightCountColor);
           g.fillRect(x1, (bh > 0) ? yAxis - bh : yAxis, x2 - x1 + 1, Math.abs(bh));
+          g.setColor(barBorderColor);
           g.drawRect(x1, (bh > 0) ? yAxis - bh : yAxis, x2 - x1 + 1, Math.abs(bh));
         }
         else
@@ -254,6 +255,7 @@ public class ComparisonCanvas extends SectorShowCanvas {
             //g.setColor(entryCountColor);
             g.setColor(flightCountColor);
           g.fillRect(x1, (bh>0)?yAxis - bh:yAxis, x2 - x1 + 1, Math.abs(bh));
+          g.setColor(barBorderColor);
           g.drawRect(x1, (bh>0)?yAxis - bh:yAxis, x2 - x1 + 1, Math.abs(bh));
         }
       }

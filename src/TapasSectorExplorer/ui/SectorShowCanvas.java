@@ -22,8 +22,9 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       toSectorBkgColor=new Color(0,40,128,30);
   
   public static Color
-      flightCountColor=new Color(100,100,100,128),
-      highFlightCountColor=new Color(128, 0, 0, 128),
+      flightCountColor=new Color(90,90,90,40),
+      barBorderColor=new Color(90,90,90,90),
+      highFlightCountColor=new Color(128, 0, 0, 40),
       entryCountColor=new Color(255, 255, 255, 40),
       highEntryCountColor=new Color(255, 128, 128, 60),
       capacityColor=new Color(128, 0, 0, 128);
@@ -788,6 +789,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
           else
             g.setColor(flightCountColor);
           g.fillRect(x1, y0 + fullH - 1 - bh, x2 - x1 + 1, bh);
+          g.setColor(barBorderColor);
           g.drawRect(x1, y0 + fullH - 1 - bh, x2 - x1 + 1, bh);
         }
         else
@@ -800,6 +802,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
               //g.setColor(entryCountColor);
               g.setColor(flightCountColor);
             g.fillRect(x1, y0 + fullH -1 - bh, x2 - x1 + 1, bh);
+            g.setColor(barBorderColor);
             g.drawRect(x1, y0 + fullH -1 - bh, x2 - x1 + 1, bh);
           }
       }
