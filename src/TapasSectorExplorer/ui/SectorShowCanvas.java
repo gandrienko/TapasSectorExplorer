@@ -22,11 +22,15 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       toSectorBkgColor=new Color(0,40,128,30);
   
   public static Color
-      flightCountColor=new Color(0, 0, 0, 40),
-      highFlightCountColor=new Color(128, 0, 0, 80),
+      flightCountColor=new Color(100,100,100,128),
+      highFlightCountColor=new Color(128, 0, 0, 128),
       entryCountColor=new Color(255, 255, 255, 40),
       highEntryCountColor=new Color(255, 128, 128, 60),
       capacityColor=new Color(128, 0, 0, 128);
+
+  public static float dash1[] = {10.0f,5.0f};
+  public static Stroke dashedStroke = new BasicStroke(1.0f,BasicStroke.CAP_BUTT,
+      BasicStroke.JOIN_MITER,10.0f, dash1, 0.0f);
   
   /**
    * Information about all sectors
@@ -635,6 +639,8 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     tWidth=w-2*tMarg;
     
     Color tickColor=new Color(90,90,90, 90);
+    Stroke origStroke=g.getStroke();
+    g.setStroke(dashedStroke);
     for (int i=0; i<=24; i++) {
       int x=tMarg+getXPos(i*60,tWidth);
       if (x<0 || x>w)
@@ -647,6 +653,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       g.drawString(str,x-sw/2,yMarg-2);
       g.drawString(str,x-sw/2,h-yMarg+asc);
     }
+    g.setStroke(origStroke);
     if (sInFocus==null)
       return;
     
@@ -756,6 +763,11 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     int eCounts[]=s.getHourlyEntryCounts(tStepAggregates,toIgnoreReEntries);
     int max=0;
     for (int j=0; j<fCounts.length; j++)
+      if (toCountEntries) {
+        if (max<eCounts[j])
+          max=eCounts[j];
+      }
+      else
       if (max<fCounts[j])
         max=fCounts[j];
     if (max<=0) return;
@@ -768,21 +780,28 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     for (int j = 0; j < fCounts.length; j++)
       if (fCounts[j] > 0) {
         int t=j*tStepAggregates;
-        int x1 = tMarg+getXPos(t, tWidth), x2 = tMarg+getXPos(t +tStepAggregates, tWidth);
+        int x1 = tMarg+getXPos(t, tWidth), x2 = tMarg+getXPos(t +/*tStepAggregates*/60, tWidth);
         int bh = Math.round(((float) fCounts[j]) / max * maxBH);
-        if (toHighlightCapExcess && !toCountEntries && s.capacity > 0 && fCounts[j] > capToHighlight)
-          g.setColor(highFlightCountColor);
-        else
-          g.setColor(flightCountColor);
-        g.fillRect(x1, y0 + fullH -1 - bh, x2 - x1 + 1, bh);
-        if (eCounts[j]>0) {
-          bh=Math.round(((float) eCounts[j]) / max * maxBH);
-          if (toHighlightCapExcess && toCountEntries && s.capacity > 0 && eCounts[j] > capToHighlight)
-            g.setColor(highEntryCountColor);
+        if (!toCountEntries) {
+          if (toHighlightCapExcess && s.capacity > 0 && fCounts[j] > capToHighlight)
+            g.setColor(highFlightCountColor);
           else
-            g.setColor(entryCountColor);
-          g.fillRect(x1, y0 + fullH -1 - bh, x2 - x1 + 1, bh);
+            g.setColor(flightCountColor);
+          g.fillRect(x1, y0 + fullH - 1 - bh, x2 - x1 + 1, bh);
+          g.drawRect(x1, y0 + fullH - 1 - bh, x2 - x1 + 1, bh);
         }
+        else
+          if (eCounts[j]>0) {
+            bh=Math.round(((float) eCounts[j]) / max * maxBH);
+            if (toHighlightCapExcess && s.capacity > 0 && eCounts[j] > capToHighlight)
+              //g.setColor(highEntryCountColor);
+              g.setColor(highFlightCountColor);
+            else
+              //g.setColor(entryCountColor);
+              g.setColor(flightCountColor);
+            g.fillRect(x1, y0 + fullH -1 - bh, x2 - x1 + 1, bh);
+            g.drawRect(x1, y0 + fullH -1 - bh, x2 - x1 + 1, bh);
+          }
       }
     if (s.capacity<max) {
       g.setColor(capacityColor);

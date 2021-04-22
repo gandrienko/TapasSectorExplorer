@@ -208,10 +208,18 @@ public class ComparisonCanvas extends SectorShowCanvas {
     for (int j=0; j<fCounts.length; j++) {
       fCounts[j]=(fCounts2!=null)?fCounts2[j]-fCounts1[j]:fCounts1[j];
       eCounts[j]=(eCounts2!=null)?eCounts2[j]-eCounts1[j]:eCounts1[j];
-      if (max < fCounts[j])
-        max = fCounts[j];
-      if (min>fCounts[j])
-        min=fCounts[j];
+      if (toCountEntries) {
+        if (max < eCounts[j])
+          max = eCounts[j];
+        if (min>eCounts[j])
+          min=eCounts[j];
+      }
+      else {
+        if (max < fCounts[j])
+          max = fCounts[j];
+        if (min > fCounts[j])
+          min = fCounts[j];
+      }
     }
     if (min>=max) return;
     
@@ -226,20 +234,27 @@ public class ComparisonCanvas extends SectorShowCanvas {
     for (int j = 0; j < fCounts.length; j++)
       if (fCounts[j] !=0) {
         int t=j*tStepAggregates;
-        int x1 = tMarg+getXPos(t, tWidth), x2 = tMarg+getXPos(t +tStepAggregates, tWidth);
+        int x1 = tMarg+getXPos(t, tWidth), x2 = tMarg+getXPos(t +/*tStepAggregates*/60, tWidth);
         int bh = Math.round(((float) fCounts[j]) / (max-min) * maxBH);
-        if (toHighlightCapExcess && !toCountEntries && s1.capacity > 0 && fCounts2[j] > capToHighlight)
-          g.setColor(highFlightCountColor);
-        else
-          g.setColor(flightCountColor);
-        g.fillRect(x1, (bh>0)?yAxis - bh:yAxis, x2 - x1 + 1, Math.abs(bh));
-        if (eCounts[j]>0) {
-          bh=Math.round(((float) eCounts[j]) / (max-min) * maxBH);
-          if (toHighlightCapExcess && toCountEntries && s1.capacity > 0 && eCounts2[j] > capToHighlight)
-            g.setColor(highEntryCountColor);
+        if (!toCountEntries) {
+          if (toHighlightCapExcess && s1.capacity > 0 && fCounts2[j] > capToHighlight)
+            g.setColor(highFlightCountColor);
           else
-            g.setColor(entryCountColor);
+            g.setColor(flightCountColor);
+          g.fillRect(x1, (bh > 0) ? yAxis - bh : yAxis, x2 - x1 + 1, Math.abs(bh));
+          g.drawRect(x1, (bh > 0) ? yAxis - bh : yAxis, x2 - x1 + 1, Math.abs(bh));
+        }
+        else
+        if (eCounts[j]!=0) {
+          bh=Math.round(((float) eCounts[j]) / (max-min) * maxBH);
+          if (toHighlightCapExcess && s1.capacity > 0 && eCounts2[j] > capToHighlight)
+            //g.setColor(highEntryCountColor);
+            g.setColor(highFlightCountColor);
+          else
+            //g.setColor(entryCountColor);
+            g.setColor(flightCountColor);
           g.fillRect(x1, (bh>0)?yAxis - bh:yAxis, x2 - x1 + 1, Math.abs(bh));
+          g.drawRect(x1, (bh>0)?yAxis - bh:yAxis, x2 - x1 + 1, Math.abs(bh));
         }
       }
   }
