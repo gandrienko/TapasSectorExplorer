@@ -76,6 +76,14 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
    */
   public int nGoTo[]=null;
   /**
+   * Identifiers of the flights that changed; used in the mode of showing only changed flights
+   */
+  public HashSet<String> changedFlightsIds=null;
+  /**
+   * Whether to show only the flights that changed
+   */
+  public boolean showOnlyChanged=false;
+  /**
    * The identifier of a flight whose path is currently "in focus", i.e.,
    * the full path is shown.
    */
@@ -299,6 +307,22 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       }
   }
   
+  public void setChangedFlightsIds(HashSet<String> changedFlightsIds) {
+    this.changedFlightsIds = changedFlightsIds;
+  }
+  
+  public void setShowOnlyChanged(boolean showOnlyChanged) {
+    if (changedFlightsIds==null || changedFlightsIds.isEmpty())
+      this.showOnlyChanged=false;
+    else
+    if (this.showOnlyChanged != showOnlyChanged) {
+      this.showOnlyChanged = showOnlyChanged;
+      off_Valid=false;
+      selection_Valid=false;
+      redraw();
+    }  
+  }
+  
   public void setFocusSector(String sectorId) {
     setFocusSector(sectorId,true);
   }
@@ -315,6 +339,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     sInFocus=sectors.getSectorData(sectorId);
     getPreviousAndNextSectors();
     countFlightsToAndFrom();
+    createFlightDrawers();
     off_Valid=false;
     selection_Valid=false;
   
@@ -332,6 +357,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     focusFlightId=flightId;
     getPreviousAndNextSectors();
     countFlightsToAndFrom();
+    createFlightDrawers();
     off_Valid=false;
     selection_Valid=false;
     redraw();
@@ -473,7 +499,7 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     return -1;
   }
   
-  protected void makeFlightDrawers(int nFrom, int y0) {
+  protected void createFlightDrawers(){
     if (sInFocus==null || sInFocus.sortedFlights==null || sInFocus.sortedFlights.isEmpty()) {
       flightDrawers=null;
       return;
@@ -488,6 +514,12 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
         flightDrawers[i].origFlightId=f.origFlightId;
       }
     }
+  }
+  
+  protected void setupFlightDrawers(int nFrom, int y0) {
+    createFlightDrawers();
+    if (flightDrawers==null)
+      return;
     int y=y0;
     for (int i=0; i<sInFocus.sortedFlights.size(); i++) {
       flightDrawers[i].clearPath();
@@ -666,11 +698,12 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     }
   
     y=yMarg+hFrom;
-    makeFlightDrawers(nFrom,y);
+    setupFlightDrawers(nFrom,y);
 
     if (flightDrawers!=null)
       for (int i=0; i<flightDrawers.length; i++)
-        flightDrawers[i].draw(g);
+        if (!showOnlyChanged || changedFlightsIds.contains(flightDrawers[i].flightId))
+          flightDrawers[i].draw(g);
   
     showSectorVisitAggregates(g);
 
@@ -684,7 +717,8 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     if (hlIdxs!=null && flightDrawers!=null)
       for (int i:hlIdxs)
         if (i>=0 && i<flightDrawers.length)
-          flightDrawers[i].drawHighlighted(getGraphics());
+          if (!showOnlyChanged || changedFlightsIds.contains(flightDrawers[i].flightId))
+            flightDrawers[i].drawHighlighted(getGraphics());
   }
   
   protected void showSectorVisitAggregates(Graphics g) {
@@ -762,12 +796,13 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       return null;
     ArrayList<Integer> iList=null;
     for (int i=0; i<flightDrawers.length; i++)
-      if (objId.equals(flightDrawers[i].flightId) ||
-              objId.equals(flightDrawers[i].origFlightId)) {
-        if (iList==null)
-          iList=new ArrayList<Integer>(10);
-        iList.add(i);
-      }
+      if (!showOnlyChanged || changedFlightsIds.contains(flightDrawers[i].flightId))
+        if (objId.equals(flightDrawers[i].flightId) ||
+                objId.equals(flightDrawers[i].origFlightId)) {
+          if (iList==null)
+            iList=new ArrayList<Integer>(10);
+          iList.add(i);
+        }
     if (iList==null)
       return null;
     int idxs[]=new int[iList.size()];
@@ -806,9 +841,10 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
             RenderingHints.VALUE_ANTIALIAS_ON);
         gr.setRenderingHints(rh);
         for (int i = 0; i < flightDrawers.length; i++)
-          if (markedObjIds.contains(flightDrawers[i].flightId) ||
-                  markedObjIds.contains(flightDrawers[i].origFlightId))
-            flightDrawers[i].drawSelected(gr);
+          if (!showOnlyChanged || changedFlightsIds.contains(flightDrawers[i].flightId))
+            if (markedObjIds.contains(flightDrawers[i].flightId) ||
+                    markedObjIds.contains(flightDrawers[i].origFlightId))
+              flightDrawers[i].drawSelected(gr);
       }
       g.drawImage(offMarked,0,0,null);
     }
@@ -834,9 +870,10 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     Graphics2D gOff = off_Image_selected.createGraphics();
     gOff.drawImage(off_Image,0,0,null);
     for (int i=0; i<flightDrawers.length; i++)
-      if (selectedObjIds.contains(flightDrawers[i].flightId) ||
-              selectedObjIds.contains(flightDrawers[i].origFlightId))
-        flightDrawers[i].drawSelected(gOff);
+      if (!showOnlyChanged || changedFlightsIds.contains(flightDrawers[i].flightId))
+        if (selectedObjIds.contains(flightDrawers[i].flightId) ||
+                selectedObjIds.contains(flightDrawers[i].origFlightId))
+          flightDrawers[i].drawSelected(gOff);
     selection_Valid=true;
     g.drawImage(off_Image_selected,0,0,null);
   }
@@ -895,8 +932,9 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       return null;
     ArrayList<String> drawn= new ArrayList<String>(selectedObjIds.size());
     for (int i=0; i<flightDrawers.length && drawn.size()<selectedObjIds.size(); i++)
-      if (selectedObjIds.contains(flightDrawers[i].flightId))
-        drawn.add(flightDrawers[i].flightId);
+      if (!showOnlyChanged || changedFlightsIds.contains(flightDrawers[i].flightId))
+        if (selectedObjIds.contains(flightDrawers[i].flightId))
+          drawn.add(flightDrawers[i].flightId);
     if (drawn.isEmpty())
       return null;
     return drawn;
@@ -909,8 +947,9 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
   public boolean hasSelectedVisibleObjects(){
     if (hasSelectedObjects())
       for (int i=0; i<flightDrawers.length; i++)
-        if (selectedObjIds.contains(flightDrawers[i].flightId))
-          return true;
+        if (!showOnlyChanged || changedFlightsIds.contains(flightDrawers[i].flightId))
+          if (selectedObjIds.contains(flightDrawers[i].flightId))
+            return true;
     return false;
   }
 
@@ -920,10 +959,12 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     int idx=selectedObjIds.indexOf(oId);
     if (idx>=0) {
       selectedObjIds.remove(idx);
-      selection_Valid=false;
-      if (showOnlySelectedFlights)
-        off_Valid=false;
-      redraw();
+      if (!showOnlyChanged || changedFlightsIds.contains(oId)) {
+        selection_Valid = false;
+        if (showOnlySelectedFlights)
+          off_Valid = false;
+        redraw();
+      }
       sendActionEvent("object_selection");
     }
   }
@@ -1005,8 +1046,9 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     if (flightDrawers==null)
       return -1;
     for (int i=0; i<flightDrawers.length; i++)
-      if (flightDrawers[i].contains(x,y))
-        return i;
+      if (!showOnlyChanged || changedFlightsIds.contains(flightDrawers[i].flightId))
+        if (flightDrawers[i].contains(x,y))
+          return i;
     return -1;
   }
   
@@ -1462,9 +1504,10 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
         if (w > 0 && h > 0) {
           HashSet<String> newSelection=new HashSet<String>(250);
           for (int i = 0; i < flightDrawers.length; i++)
-            if (flightDrawers[i].intersects(x0, y0, w, h))
-              newSelection.add((flightDrawers[i].isModifiedVersion)?
-                                   flightDrawers[i].origFlightId:flightDrawers[i].flightId);
+            if (!showOnlyChanged || changedFlightsIds.contains(flightDrawers[i].flightId))
+              if (flightDrawers[i].intersects(x0, y0, w, h))
+                newSelection.add((flightDrawers[i].isModifiedVersion)?
+                                     flightDrawers[i].origFlightId:flightDrawers[i].flightId);
           if (!newSelection.isEmpty())
             if (showOnlySelectedFlights) {
               for (String id : newSelection)

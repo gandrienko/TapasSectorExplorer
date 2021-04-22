@@ -1,8 +1,6 @@
 package TapasSectorExplorer.data_manage;
 
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 /**
  * Computes and stores differences between two scenarios represented by
@@ -138,6 +136,12 @@ public class ScenarioDistinguisher extends SectorSet {
     }
     
     return sectors!=null && !sectors.isEmpty() && flights!=null && !flights.isEmpty();
+  }
+  
+  public HashSet<String> getModifiedFlightsIds(){
+    if (origFlights==null || origFlights.isEmpty())
+      return null;
+    return new HashSet<String>(origFlights.keySet());
   }
   
   public ArrayList<FlightInSector> getModifiedFlightVersion(String origFlightId) {
