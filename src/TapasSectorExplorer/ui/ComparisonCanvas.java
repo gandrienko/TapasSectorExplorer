@@ -222,6 +222,7 @@ public class ComparisonCanvas extends SectorShowCanvas {
       }
     }
     if (min>=max) return;
+    int absMax=Math.max(Math.abs(min),Math.abs(max));
     
     float capToHighlight=(100+minExcessPercent)*s1.capacity/100;
     
@@ -231,31 +232,33 @@ public class ComparisonCanvas extends SectorShowCanvas {
     g.setColor(new Color(255,255,255,128));
     g.drawLine(0,yAxis,fullW,yAxis);
     
+    int nOverlap=Math.round(60/tStepAggregates)-1;
+    float overlapRatio=nOverlap/59;
+    float alpha=alphaMax-overlapRatio*(alphaMax-alphaMin);
+    
     for (int j = 0; j < fCounts.length; j++)
       if (fCounts[j] !=0) {
         int t=j*tStepAggregates;
         int x1 = tMarg+getXPos(t, tWidth), x2 = tMarg+getXPos(t +/*tStepAggregates*/60, tWidth);
-        int bh = Math.round(((float) fCounts[j]) / (max-min) * maxBH);
         if (!toCountEntries) {
+          int bh = Math.round(((float) fCounts[j]) / (max-min) * maxBH);
+          float ratio=((float) fCounts[j]) / absMax, rAbs=Math.min(1f,Math.abs(ratio));
           if (toHighlightCapExcess && s1.capacity > 0 && fCounts2[j] > capToHighlight)
-            g.setColor(highFlightCountColor);
+            g.setColor(new Color(rAbs,0,0,alpha));
           else
-            g.setColor(flightCountColor);
+            g.setColor(new Color(1-rAbs,1-rAbs,1-rAbs,alpha));
           g.fillRect(x1, (bh > 0) ? yAxis - bh : yAxis, x2 - x1 + 1, Math.abs(bh));
-          g.setColor(barBorderColor);
           g.drawRect(x1, (bh > 0) ? yAxis - bh : yAxis, x2 - x1 + 1, Math.abs(bh));
         }
         else
         if (eCounts[j]!=0) {
-          bh=Math.round(((float) eCounts[j]) / (max-min) * maxBH);
+          int bh=Math.round(((float) eCounts[j]) / (max-min) * maxBH);
+          float ratio=((float) eCounts[j]) / absMax, rAbs=Math.min(1f,Math.abs(ratio));
           if (toHighlightCapExcess && s1.capacity > 0 && eCounts2[j] > capToHighlight)
-            //g.setColor(highEntryCountColor);
-            g.setColor(highFlightCountColor);
+            g.setColor(new Color(rAbs,0,0,alpha));
           else
-            //g.setColor(entryCountColor);
-            g.setColor(flightCountColor);
+            g.setColor(new Color(1-rAbs,1-rAbs,1-rAbs,alpha));
           g.fillRect(x1, (bh>0)?yAxis - bh:yAxis, x2 - x1 + 1, Math.abs(bh));
-          g.setColor(barBorderColor);
           g.drawRect(x1, (bh>0)?yAxis - bh:yAxis, x2 - x1 + 1, Math.abs(bh));
         }
       }

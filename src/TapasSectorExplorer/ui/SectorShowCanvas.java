@@ -28,7 +28,9 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       entryCountColor=new Color(255, 255, 255, 40),
       highEntryCountColor=new Color(255, 128, 128, 60),
       capacityColor=new Color(128, 0, 0, 128);
-
+  
+  public static float alphaMin=0.075f, alphaMax=0.5f;
+  
   public static float dash1[] = {10.0f,5.0f};
   public static Stroke dashedStroke = new BasicStroke(1.0f,BasicStroke.CAP_BUTT,
       BasicStroke.JOIN_MITER,10.0f, dash1, 0.0f);
@@ -774,7 +776,11 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     if (max<=0) return;
     if (s.capacity<999)
       max=Math.max(max,s.capacity);
-    
+  
+    int nOverlap=Math.round(60/tStepAggregates)-1;
+    float overlapRatio=nOverlap/59;
+    float alpha=alphaMax-overlapRatio*(alphaMax-alphaMin);
+
     float capToHighlight=(100+minExcessPercent)*s.capacity/100;
     
     int maxBH=fullH-2;
@@ -782,27 +788,25 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
       if (fCounts[j] > 0) {
         int t=j*tStepAggregates;
         int x1 = tMarg+getXPos(t, tWidth), x2 = tMarg+getXPos(t +/*tStepAggregates*/60, tWidth);
-        int bh = Math.round(((float) fCounts[j]) / max * maxBH);
         if (!toCountEntries) {
+          float ratio=Math.min(((float) fCounts[j]) / max,1);
+          int bh = Math.round(ratio * maxBH);
           if (toHighlightCapExcess && s.capacity > 0 && fCounts[j] > capToHighlight)
-            g.setColor(highFlightCountColor);
+            g.setColor(new Color(ratio,0,0,alpha));
           else
-            g.setColor(flightCountColor);
+            g.setColor(new Color(1-ratio,1-ratio,1-ratio,alpha));
           g.fillRect(x1, y0 + fullH - 1 - bh, x2 - x1 + 1, bh);
-          g.setColor(barBorderColor);
           g.drawRect(x1, y0 + fullH - 1 - bh, x2 - x1 + 1, bh);
         }
         else
           if (eCounts[j]>0) {
-            bh=Math.round(((float) eCounts[j]) / max * maxBH);
+            float ratio=Math.min(((float) eCounts[j]) / max,1);
+            int bh=Math.round(ratio * maxBH);
             if (toHighlightCapExcess && s.capacity > 0 && eCounts[j] > capToHighlight)
-              //g.setColor(highEntryCountColor);
-              g.setColor(highFlightCountColor);
+              g.setColor(new Color(ratio,0,0,alpha));
             else
-              //g.setColor(entryCountColor);
-              g.setColor(flightCountColor);
+              g.setColor(new Color(1-ratio,1-ratio,1-ratio,alpha));
             g.fillRect(x1, y0 + fullH -1 - bh, x2 - x1 + 1, bh);
-            g.setColor(barBorderColor);
             g.drawRect(x1, y0 + fullH -1 - bh, x2 - x1 + 1, bh);
           }
       }
