@@ -68,7 +68,7 @@ public class Main {
       SectorSet sectorsSolution=null;
       TapasSectorExplorer.data_manage.DataStore solution=new TapasSectorExplorer.data_manage.DataStore();
       System.out.println("Tryng to get solution data ...");
-      if (solution.readData(fileNameSolution)) {
+      if (fileNameSolution!=null && solution.readData(fileNameSolution)) {
         System.out.println("Successfully got solution data!");
   
         sectorsSolution=new SectorSet();
