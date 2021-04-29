@@ -58,12 +58,17 @@ public class SectorShowPanel extends JPanel
    * Used for switching between showing all flights and only selected ones
    */
   protected JCheckBox cbShowOnlySelected=null;
+  protected JButton bUnselect=null;
+  /**
+   * Shows how many flights are currently selected
+   */
+  protected JLabel labSelFlights=null;
   /**
    * Controls for selecting the time range to view
    */
   protected RangeSlider timeFocuser=null;
   protected JTextField tfTStart=null, tfTEnd=null;
-  protected JButton bFullRange=null, bUnselect=null;
+  protected JButton bFullRange=null;
   /**
    * Whether to show only the flights that changed
    */
@@ -81,10 +86,6 @@ public class SectorShowPanel extends JPanel
    * Whether to ignore repeated entries
    */
   protected JCheckBox cbIgnoreReEntries =null;
-  /**
-   * Shows how many flights are currently selected
-   */
-  protected JLabel labSelFlights=null;
   
   /**
    * Each SectorSet corresponds to one scenario
@@ -289,7 +290,9 @@ public class SectorShowPanel extends JPanel
     labSelFlights=new JLabel("0 flights selected",JLabel.CENTER);
     pp.add(labSelFlights);
     labSelFlights.addMouseListener(this);
-    labSelFlights.setToolTipText("Press right mouse button to put selected flights to clipboard");
+    labSelFlights.setToolTipText("<html><center>When some flights are selected,<br>" +
+                                     "press right mouse button<br>" +
+                                     "for a popup menu</center></html>");
     ToolTipManager.sharedInstance().registerComponent(labSelFlights);
     ToolTipManager.sharedInstance().setDismissDelay(Integer.MAX_VALUE);
   
@@ -298,7 +301,7 @@ public class SectorShowPanel extends JPanel
     cbShowOnlySelected=new JCheckBox("Show only selected",false);
     cbShowOnlySelected.addItemListener(this);
     bp.add(cbShowOnlySelected);
-    bUnselect=new JButton("Unselect all");
+    bUnselect=new JButton("Deselect all");
     bUnselect.addActionListener(this);
     bUnselect.setActionCommand("unselect_all");
     bUnselect.setEnabled(false);
@@ -620,8 +623,11 @@ public class SectorShowPanel extends JPanel
       return;
     ArrayList<String> selected = canvas.getSelectedObjectIds(),
         visible = canvas.getSelectedVisibleObjectIds();
+    HashSet<String> markedObjIds=canvas.getMarkedObjIds();
     String txt = ((selected == null) ? "0" : Integer.toString(selected.size())) + " flights selected; " +
                      ((visible == null) ? "0" : Integer.toString(visible.size())) + " visible";
+    if (markedObjIds!=null && !markedObjIds.isEmpty())
+      txt+="; "+markedObjIds.size()+" marked";
     labSelFlights.setText(txt);
     //labSelFlights.setSize(labSelFlights.getPreferredSize());
     labSelFlights.invalidate();
@@ -758,6 +764,8 @@ public class SectorShowPanel extends JPanel
   }
   
   protected JPopupMenu clipboardMenu =null, sortMenu=null;
+  protected JMenuItem mitUnselectMarked=null,
+      mitUnselectNotMarked=null, mitClearMarking=null;
   
   public void mousePressed(MouseEvent e) {
     SectorShowCanvas canvas=getVisibleCanvas();
@@ -773,7 +781,12 @@ public class SectorShowPanel extends JPanel
             clipboardMenu.setVisible(false);
           return;
         }
+        HashSet markedObjIds=getVisibleCanvas().getMarkedObjIds();
+        boolean someMarked=markedObjIds!=null && !markedObjIds.isEmpty();
         if (clipboardMenu != null) {
+          mitUnselectMarked.setEnabled(someMarked);
+          mitUnselectNotMarked.setEnabled(someMarked);
+          mitClearMarking.setEnabled(someMarked);
           clipboardMenu.show(this, p.x, p.y);
           return;
         }
@@ -795,6 +808,34 @@ public class SectorShowPanel extends JPanel
             putSelectedFlightPathsToClipboard();
           }
         });
+        clipboardMenu.addSeparator();
+        clipboardMenu.add(mitUnselectMarked= new JMenuItem("Deselect marked flights"));
+        mitUnselectMarked.addActionListener(new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent e) {
+            clipboardMenu.setVisible(false);
+            unselectMarked();
+          }
+        });
+        clipboardMenu.add(mitUnselectNotMarked= new JMenuItem("Deselect NOT marked flights"));
+        mitUnselectNotMarked.addActionListener(new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent e) {
+            clipboardMenu.setVisible(false);
+            unselectNotMarked();
+          }
+        });
+        clipboardMenu.add(mitClearMarking= new JMenuItem("Clear marking"));
+        mitClearMarking.addActionListener(new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent e) {
+            clipboardMenu.setVisible(false);
+            clearMarking();
+          }
+        });
+        mitUnselectMarked.setEnabled(someMarked);
+        mitUnselectNotMarked.setEnabled(someMarked);
+        mitClearMarking.setEnabled(someMarked);
         clipboardMenu.show(this, p.x, p.y);
       }
       else {
@@ -845,6 +886,63 @@ public class SectorShowPanel extends JPanel
       if (sortMenu != null && sortMenu.isVisible())
         sortMenu.setVisible(false);
     }
+  }
+  
+  public void unselectMarked(){
+    SectorShowCanvas canvas=getVisibleCanvas();
+    ArrayList<String> selIds=canvas.getSelectedObjectIds();
+    if (selIds==null || selIds.isEmpty())
+      return;
+    selIds=(ArrayList<String>)selIds.clone();
+    HashSet<String> markedIds=canvas.getMarkedObjIds();
+    if (markedIds==null || markedIds.isEmpty())
+      return;
+    markedIds=(HashSet<String>)markedIds.clone();
+    clearMarking();
+    for (String id:markedIds)
+      selIds.remove(id);
+    if (selIds.isEmpty()) {
+      for (int i = 0; i < sectorsFlightsViews.length; i++)
+        sectorsFlightsViews[i].clearSelection();
+      flInfoPanel.setSelectedFlights(null, null);
+      bUnselect.setEnabled(false);
+    }
+    else {
+      for (int i = 0; i < sectorsFlightsViews.length; i++)
+        sectorsFlightsViews[i].setSelectedObjIds(selIds);
+      flInfoPanel.setSelectedFlights(selIds, canvas.getSelectedVisibleObjectIds());
+    }
+  }
+  
+  public void unselectNotMarked(){
+    SectorShowCanvas canvas=getVisibleCanvas();
+    ArrayList<String> selIds=canvas.getSelectedObjectIds();
+    if (selIds==null || selIds.isEmpty())
+      return;
+    selIds=(ArrayList<String>)selIds.clone();
+    HashSet<String> markedIds=canvas.getMarkedObjIds();
+    if (markedIds==null || markedIds.isEmpty())
+      return;
+    for (int i=selIds.size()-1; i>=0; i--)
+      if (!markedIds.contains(selIds.get(i)))
+        selIds.remove(i);
+    if (selIds.isEmpty()) {
+      for (int i = 0; i < sectorsFlightsViews.length; i++)
+        sectorsFlightsViews[i].clearSelection();
+      flInfoPanel.setSelectedFlights(null, null);
+      bUnselect.setEnabled(false);
+    }
+    else {
+      for (int i = 0; i < sectorsFlightsViews.length; i++)
+        sectorsFlightsViews[i].setSelectedObjIds(selIds);
+      flInfoPanel.setSelectedFlights(selIds, canvas.getSelectedVisibleObjectIds());
+    }
+  }
+  
+  public void clearMarking(){
+    flInfoPanel.clearMarking();
+    for (int i = 0; i< sectorsFlightsViews.length; i++)
+      sectorsFlightsViews[i].clearMarking();
   }
   
   public void mouseClicked(MouseEvent e) {}

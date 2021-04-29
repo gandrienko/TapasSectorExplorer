@@ -840,12 +840,22 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
   public void setMarkedObjIds(HashSet<String> marked) {
     if (marked==null && markedObjIds==null)
       return;
-    this.markedObjIds=marked;
+    if (marked==null)
+      markedObjIds.clear();
+    else
+      markedObjIds=(HashSet<String>)marked.clone();
     updateMarked();
   }
   
   public HashSet<String> getMarkedObjIds () {
     return markedObjIds;
+  }
+  
+  public void clearMarking() {
+    if (markedObjIds!=null && !markedObjIds.isEmpty()) {
+      markedObjIds.clear();
+      updateMarked();
+    }
   }
   
   protected void updateMarked() {
@@ -942,7 +952,16 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
               selectedObjIds.size()==newSelection.size() &&
               selectedObjIds.containsAll(newSelection))
         return;
-    this.selectedObjIds=(ArrayList<String>)newSelection.clone();
+    
+    if (newSelection==null)
+      if (selectedObjIds!=null)
+        selectedObjIds.clear();
+      else;
+    else
+      selectedObjIds=(ArrayList<String>)newSelection.clone();
+    if (markedObjIds != null && !markedObjIds.isEmpty())
+      if (selectedObjIds == null || selectedObjIds.isEmpty())
+        markedObjIds.clear();
     selection_Valid=false;
     if (showOnlySelectedFlights)
       off_Valid=false;

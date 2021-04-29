@@ -1,4 +1,4 @@
-*data_baseline="c:\CommonGISprojects\tracks-avia\TAPAS\ATFCM-20210331\0_delays\baseline.csv"
-data_baseline="c:\CommonGISprojects\tracks-avia\TAPAS\ATFCM-20210331\0_delays\output_solution.csv"
-*data_solution="c:\CommonGISprojects\tracks-avia\TAPAS\ATFCM-20210331\0_delays\output_solution.csv"
+data_baseline="c:\CommonGISprojects\tracks-avia\TAPAS\ATFCM-20210331\0_delays\baseline.csv"
+*data_baseline="c:\CommonGISprojects\tracks-avia\TAPAS\ATFCM-20210331\0_delays\output_solution.csv"
+data_solution="c:\CommonGISprojects\tracks-avia\TAPAS\ATFCM-20210331\0_delays\output_solution.csv"
 sector_capacities="c:\CommonGISprojects\tracks-avia\TAPAS\ATFCM-20210331\sector_capacities.csv"

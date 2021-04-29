@@ -142,6 +142,13 @@ public class SelectedFlightsInfoShow extends JPanel
     if (changedSelected || changedVisible) {
       if (focusFlightId !=null && (selectedFlIds==null || !selectedFlIds.contains(focusFlightId)))
         focusFlightId =null;
+      if (markedObjIds!=null && !markedObjIds.isEmpty())
+        if (selectedFlIds==null || selectedFlIds.isEmpty())
+          markedObjIds.clear();
+        else
+          for (String id:markedObjIds)
+            if (!selectedFlIds.contains(id))
+              markedObjIds.remove(id);
       makeInterior();
     }
   }
@@ -339,7 +346,18 @@ public class SelectedFlightsInfoShow extends JPanel
   public void setMarkedObjIds(HashSet<String> marked) {
     if (markedObjIds==null && marked==null)
       return;
-    this.markedObjIds=marked;
+    this.markedObjIds=(HashSet<String>)marked.clone();
+    updateMarked();
+  }
+  
+  public void clearMarking() {
+    if (markedObjIds!=null && !markedObjIds.isEmpty()) {
+      markedObjIds.clear();
+      updateMarked();
+    }
+  }
+  
+  protected void updateMarked() {
     if (panelFlIds==null || panelFlIds.isEmpty())
       return;
     int y=-1;
