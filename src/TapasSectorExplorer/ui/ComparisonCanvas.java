@@ -377,11 +377,14 @@ public class ComparisonCanvas extends SectorShowCanvas {
     if (fIdx<0)
       return null;
     FlightInSector f0=sInFocus.sortedFlights.get(fIdx);
-    ArrayList<FlightInSector> seq1 = scDiff.scenario1.getSectorVisitSequence(f0.flightId),
-                             seq2= scDiff.scenario2.getSectorVisitSequence(f0.flightId);
-    if (seq1 == null || seq1.isEmpty() || seq2==null || seq2.isEmpty() || SectorSet.sameSequence(seq1,seq2))
+    String flightId=scDiff.getOrigFlighIdIfModified(f0.flightId);
+    ArrayList<FlightInSector> seq1 = scDiff.scenario1.getSectorVisitSequence(flightId),
+                             seq2= scDiff.scenario2.getSectorVisitSequence(flightId);
+    if (seq1!=null && seq2!=null && SectorSet.sameSequence(seq1,seq2))
       return super.getFlightInfoText(fIdx);
-    String str="<html><body style=background-color:rgb(255,255,204)>"+"Flight <b>"+f0.flightId+"</b><hr>";
+    if (seq1 == null || seq1.isEmpty() || seq2==null || seq2.isEmpty())
+      return super.getFlightInfoText(fIdx);
+    String str="<html><body style=background-color:rgb(255,255,204)>"+"Flight <b>"+flightId+"</b><hr>";
     str += "<table border=0>";
     str+="<tr><td>Sector:</td><td>Time:</td><td></td><td>Change:</td>";
     boolean passedFocusSector = false;

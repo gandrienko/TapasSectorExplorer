@@ -138,6 +138,14 @@ public class ScenarioDistinguisher extends SectorSet {
     return sectors!=null && !sectors.isEmpty() && flights!=null && !flights.isEmpty();
   }
   
+  public String getOrigFlighIdIfModified(String flightId){
+    if (flightId==null)
+      return null;
+    if (!flightId.endsWith("_mod"))
+      return flightId;
+    return flightId.substring(0,flightId.length()-4);
+  }
+  
   public HashSet<String> getModifiedFlightsIds(){
     if (origFlights==null || origFlights.isEmpty())
       return null;
