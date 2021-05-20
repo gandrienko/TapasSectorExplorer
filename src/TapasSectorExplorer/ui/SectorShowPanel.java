@@ -5,6 +5,8 @@ import TapasSectorExplorer.data_manage.OneSectorData;
 import TapasSectorExplorer.data_manage.ScenarioDistinguisher;
 import TapasSectorExplorer.data_manage.SectorSet;
 
+import TapasUtilities.RangeSlider;
+
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -66,7 +68,7 @@ public class SectorShowPanel extends JPanel
   /**
    * Controls for selecting the time range to view
    */
-  protected RangeSlider timeFocuser=null;
+  protected TapasUtilities.RangeSlider timeFocuser=null;
   protected JTextField tfTStart=null, tfTEnd=null;
   protected JButton bFullRange=null;
   /**
