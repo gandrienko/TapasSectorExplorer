@@ -242,11 +242,14 @@ public class ComparisonCanvas extends SectorShowCanvas {
         int x1 = tMarg+getXPos(t, tWidth), x2 = tMarg+getXPos(t +/*tStepAggregates*/60, tWidth);
         if (!toCountEntries) {
           int bh = Math.round(((float) fCounts[j]) / (max-min) * maxBH);
-          float ratio=((float) fCounts[j]) / absMax, rAbs=Math.min(1f,Math.abs(ratio));
-          if (toHighlightCapExcess && s1.capacity > 0 && fCounts2[j] > capToHighlight)
-            g.setColor(new Color(rAbs,0,0,alpha));
-          else
-            g.setColor(new Color(1-rAbs,1-rAbs,1-rAbs,alpha));
+          if (toHighlightCapExcess && s1.capacity > 0 && fCounts2[j] > capToHighlight) {
+            float ratio=((float) fCounts[j]) / s1.capacity, rAbs=Math.min(1f,Math.abs(ratio));
+            g.setColor(new Color(rAbs, 0, 0, alpha));
+          }
+          else {
+            float ratio=((float) fCounts[j]) / absMax, rAbs=Math.min(1f,Math.abs(ratio));
+            g.setColor(new Color(1 - rAbs, 1 - rAbs, 1 - rAbs, alpha));
+          }
           g.fillRect(x1, (bh > 0) ? yAxis - bh : yAxis, x2 - x1 + 1, Math.abs(bh));
           g.drawRect(x1, (bh > 0) ? yAxis - bh : yAxis, x2 - x1 + 1, Math.abs(bh));
         }
