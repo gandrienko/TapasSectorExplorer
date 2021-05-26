@@ -197,6 +197,22 @@ public class SectorShowPanel extends JPanel
     p=new JPanel(new FlowLayout(FlowLayout.CENTER,20,2));
     pp=new JPanel(new FlowLayout(FlowLayout.CENTER,5,2));
     p.add(pp);
+  
+    pp.add(new JLabel("Aggregate"));
+    chEntriesOrPresence=new JComboBox();
+    pp.add(chEntriesOrPresence);
+    chEntriesOrPresence.addItem("entries");
+    chEntriesOrPresence.addItem("presence");
+    chEntriesOrPresence.setSelectedIndex(0);
+    chEntriesOrPresence.addActionListener(this);
+  
+    pp.add(Box.createRigidArea(new Dimension(10, 0)));
+    cbIgnoreReEntries=new JCheckBox("Ignore re-entries",true);
+    cbIgnoreReEntries.addItemListener(this);
+    pp.add(cbIgnoreReEntries);
+  
+    pp.add(Box.createRigidArea(new Dimension(20, 0)));
+
     pp.add(new JLabel("Time step in histograms:"));
     chAggrStep=new JComboBox();
     chAggrStep.addItem(new Integer(1));
@@ -211,25 +227,15 @@ public class SectorShowPanel extends JPanel
     pp.add(chAggrStep);
     pp.add(new JLabel("minutes"));
   
-    cbIgnoreReEntries=new JCheckBox("Ignore re-entries",true);
-    cbIgnoreReEntries.addItemListener(this);
-    p.add(cbIgnoreReEntries);
-  
     pp=new JPanel(new FlowLayout(FlowLayout.CENTER,5,2));
+    p.add(pp);
     cbHighlightExcess=new JCheckBox("Highlight excess of sector capacity by over",true);
     pp.add(cbHighlightExcess);
     cbHighlightExcess.addItemListener(this);
     tfPercentExcess=new JTextField("10",4);
     pp.add(tfPercentExcess);
     tfPercentExcess.addActionListener(this);
-    pp.add(new JLabel("% regarding"));
-    chEntriesOrPresence=new JComboBox();
-    pp.add(chEntriesOrPresence);
-    chEntriesOrPresence.addItem("entries");
-    chEntriesOrPresence.addItem("presence");
-    chEntriesOrPresence.setSelectedIndex(0);
-    chEntriesOrPresence.addActionListener(this);
-    p.add(pp);
+    pp.add(new JLabel("%"));
     
     if (scDiff==null)
       bp.add(p);
