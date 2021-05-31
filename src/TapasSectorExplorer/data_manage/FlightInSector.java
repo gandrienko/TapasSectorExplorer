@@ -108,7 +108,10 @@ public class FlightInSector implements Comparable<FlightInSector>{
           attrNames[i].equalsIgnoreCase("ExitTime")) {
         if (data[i]==null)
           return null;
-        LocalTime t=LocalTime.parse(data[i].toString());
+        LocalTime t=null;
+        try {
+          t=LocalTime.parse(data[i].toString());
+        } catch (Exception ex) {};
         if (t!=null)
           if (attrNames[i].equalsIgnoreCase("EntryTime"))
             fis.entryTime =t;
@@ -126,11 +129,15 @@ public class FlightInSector implements Comparable<FlightInSector>{
       return null;
     else {
       FlightInSector fis=new FlightInSector();
+      try {
+        fis.entryTime = LocalTime.parse(record.FromT);
+        fis.exitTime = LocalTime.parse(record.ToT);
+      } catch (Exception ex) {
+        return null;
+      }
       fis.flightId=record.flight;
       fis.sectorId=record.sector;
       fis.delay=record.delay;
-      fis.entryTime=LocalTime.parse(record.FromT);
-      fis.exitTime=LocalTime.parse(record.ToT);
       fis.prevSectorId=record.FromS;
       fis.nextSectorId=record.ToS;
       return fis;
