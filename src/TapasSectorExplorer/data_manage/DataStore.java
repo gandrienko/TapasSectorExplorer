@@ -9,6 +9,8 @@ public class DataStore {
   public Vector<Object[]> data=null;
   
   public boolean readData(String fname) {
+    if (!fname.toLowerCase().endsWith(".csv"))
+      fname=fname+".csv";
     fileName=fname;
     try {
       BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(new File(fname)))) ;
