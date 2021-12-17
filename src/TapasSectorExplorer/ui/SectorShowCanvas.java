@@ -4,6 +4,8 @@ import TapasSectorExplorer.data_manage.*;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.time.LocalTime;
@@ -1338,6 +1340,10 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
     return getSectorInfoText(s,is[0]<0,tAtPos);
   }
   
+  public void sectorEntriesToClipboard() {
+    //
+  }
+  
   //---------------------- MouseListener ----------------------------------------
   
   protected boolean clicked=false;
@@ -1520,6 +1526,28 @@ public class SectorShowCanvas extends JPanel implements MouseListener, MouseMoti
         popupMenu.add(mitDeselect);
       }
       popupMenu.addSeparator();
+      if (sector==sInFocus && sector.sortedFlights!=null && !sector.sortedFlights.isEmpty()) {
+        popupMenu.add(mit=new JMenuItem("Sector entries >>> clipboard"));
+        mit.addActionListener(new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent e) {
+            Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+            if (clipboard==null)
+              return;
+            StringBuffer txt=new StringBuffer();
+            txt.append("Flight,Time\r\n");
+            for (int i=0; i<sector.sortedFlights.size(); i++) {
+              FlightInSector fis=sector.sortedFlights.get(i);
+              String fid=fis.flightId;
+              int pos=fid.lastIndexOf('-');
+              if (pos>0) fid=fid.substring(0,pos);
+              txt.append(fid+","+fis.entryTime + "\r\n");
+            }
+            clipboard.setContents(new StringSelection(txt.toString()),null);
+          }
+        });
+        popupMenu.addSeparator();
+      }
       popupMenu.add(mit=new JMenuItem("Cancel"));
       mit.addActionListener(new ActionListener() {
         @Override
